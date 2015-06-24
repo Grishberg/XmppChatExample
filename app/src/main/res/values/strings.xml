@@ -4,4 +4,8 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="action_connect">Connect</string>
+    <string name="title_activity_roster">RosterActivity</string>
+    <string name="title_activity_find_user">FindUserActivity</string>
+    <string name="title_activity_chat">ChatActivity</string>
+    <string name="title_activity_chat_rooms">ChatRoomsActivity</string>
 </resources>

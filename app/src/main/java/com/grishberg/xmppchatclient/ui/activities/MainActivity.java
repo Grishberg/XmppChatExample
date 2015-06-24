@@ -16,7 +16,6 @@ import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 
 public class MainActivity extends AppCompatActivity {
 
-	private ServiceConnection 		mServiceConnection;
 	private IInteractionWithService	mService;
 	private boolean mIsBound;
 
@@ -25,19 +24,21 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		mServiceConnection = new ServiceConnection() {
-			@Override
-			public void onServiceConnected(ComponentName name, IBinder service) {
-				mService	= ((ApiService.MyBinder)service).getService();
-				mIsBound	= true;
-			}
+		startActivity(new Intent(this,LoginActivity.class));
 
-			@Override
-			public void onServiceDisconnected(ComponentName name) {
-				mIsBound	= false;
-			}
-		};
 	}
+	private ServiceConnection mServiceConnection = new ServiceConnection() {
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			mService	= ((ApiService.MyBinder)service).getService();
+			mIsBound	= true;
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			mIsBound	= false;
+		}
+	};
 
 	@Override
 	protected void onStart() {

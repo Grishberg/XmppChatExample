@@ -5,12 +5,14 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
 import org.jivesoftware.smack.MessageListener;
+import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
 import org.jivesoftware.smack.chat.ChatManagerListener;
@@ -31,6 +33,13 @@ public class ApiService extends Service implements IInteractionWithService
 		, ChatMessageListener
 		, RosterListener {
 	private static final String TAG = "XmppChat.ApiService";
+	public static final String EVENT_ON_CONNECTED_RESULT 	= "onConnectedResult";
+	public static final String EXTRA_CONNECTION_STATUS 		= "connectionStatus";
+
+	public static final int CONNECTION_STATUS_OK				= 0;
+	public static final int CONNECTION_STATUS_BAD_PASSWORD		= 1;
+	public static final int CONNECTION_STATUS_BAD_SERVER		= 2;
+	public static final int CONNECTION_STATUS_ERROR_CONNECTION	= 3;
 
 	private AbstractXMPPConnection 	mConnection;
 	private ChatManager 		mChatManager;
@@ -99,10 +108,17 @@ public class ApiService extends Service implements IInteractionWithService
 			presence.setStatus("Working");
 			// Send the packet (assume we have an XMPPConnection instance called "con").
 			mConnection.sendStanza(presence);
-		} catch (Exception e){
-			e.printStackTrace();
+
+			sendOnConnectedMessage(CONNECTION_STATUS_OK);
+			Log.d(TAG,"on connected");
 		}
-		Log.d(TAG,"on connected");
+		catch (SmackException.ConnectionException e){
+			sendOnConnectedMessage(CONNECTION_STATUS_ERROR_CONNECTION);
+		}
+		catch (Exception e){
+			e.printStackTrace();
+			sendOnConnectedMessage(CONNECTION_STATUS_BAD_PASSWORD);
+		}
 	}
 
 	/**
@@ -162,6 +178,13 @@ public class ApiService extends Service implements IInteractionWithService
 	}
 
 	//------------------- end roster events --------------------
+
+	private void sendOnConnectedMessage(int msg){
+		Intent intent = new Intent(EVENT_ON_CONNECTED_RESULT);
+		// You can also include some extra data.
+		intent.putExtra(EXTRA_CONNECTION_STATUS, msg);
+		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+	}
 
 	@Override
 	public IBinder onBind(Intent intent) {
