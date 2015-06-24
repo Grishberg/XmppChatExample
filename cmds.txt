@@ -1,0 +1,16 @@
+echo "# XmppChatExample" >> README.md
+
+echo ".gradle">> .gitignore
+echo "/local.properties">> .gitignore
+echo "/.idea/*">> .gitignore
+echo ".DS_Store">> .gitignore
+echo "/build">> .gitignore
+echo "/captures">> .gitignore
+echo "*.iml">> .gitignore
+
+git init
+git add README.md
+git add .gitignore
+git commit -m "first commit"
+git remote add origin https://github.com/Grishberg/XmppChatExample.git
+git push -u origin master
