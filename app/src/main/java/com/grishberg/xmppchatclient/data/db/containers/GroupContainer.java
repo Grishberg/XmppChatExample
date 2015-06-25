@@ -8,15 +8,15 @@ import com.grishberg.xmppchatclient.data.db.DbHelper;
 /**
  * Created by grigoriy on 25.06.15.
  */
-public class Group {
+public class GroupContainer {
 	private long id;
 	private String name;
 
-	private Group(long id, String name){
+	private GroupContainer(long id, String name){
 		this.id		= id;
 		this.name	= name;
 	}
-	private Group(String name){
+	public GroupContainer(String name){
 		this(-1, name);
 	}
 
@@ -29,11 +29,11 @@ public class Group {
 		return cv;
 	}
 
-	public static Group fromCursor(Cursor c){
+	public static GroupContainer fromCursor(Cursor c){
 		int idColId = c.getColumnIndex(DbHelper.COLUMN_ID);
 		int nameColId = c.getColumnIndex(DbHelper.GROUPS_NAME);
 
-		return new Group(
+		return new GroupContainer(
 				c.getLong(idColId),
 				c.getString(nameColId));
 	}

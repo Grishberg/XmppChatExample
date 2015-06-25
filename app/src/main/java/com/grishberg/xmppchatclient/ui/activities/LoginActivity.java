@@ -10,13 +10,10 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
@@ -136,7 +133,7 @@ implements View.OnClickListener{
 	@Override
 	protected void onResume() {
 		LocalBroadcastManager.getInstance(this).registerReceiver(
-				mMessageReceiver, new IntentFilter(ApiService.EVENT_ON_CONNECTED_RESULT));
+				mMessageReceiver, new IntentFilter(ApiService.ACTION_ON_CONNECTED_RESULT));
 		super.onResume();
 	}
 
@@ -144,6 +141,9 @@ implements View.OnClickListener{
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			mProgress.setVisibility(View.GONE);
+			if(!intent.getAction().equals(ApiService.ACTION_ON_CONNECTED_RESULT)){
+				return;
+			}
 			int connectionStatus = intent.getIntExtra(ApiService.EXTRA_CONNECTION_STATUS, -1);
 			switch (connectionStatus){
 				case ApiService.CONNECTION_STATUS_OK:
@@ -182,7 +182,7 @@ implements View.OnClickListener{
 
 	private void showMessage(String msg){
 		//tODO: Toast
-		Toast.makeText(this,msg, Toast.LENGTH_SHORT);
+		Toast.makeText(this, msg, Toast.LENGTH_SHORT);
 	}
 
 	@Override

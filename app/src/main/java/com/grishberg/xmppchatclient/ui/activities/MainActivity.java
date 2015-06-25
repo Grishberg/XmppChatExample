@@ -22,8 +22,8 @@ public class MainActivity extends AppCompatActivity {
 
 	private static final int REQUEST_CODE_LOGIN = 0;
 	private ApiService	mService;
-	private boolean mIsBound;
-	private boolean mIsLogined;
+	private boolean 	mIsBound;
+	private boolean 	mIsLogined;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
