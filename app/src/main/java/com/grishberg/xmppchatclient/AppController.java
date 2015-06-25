@@ -11,10 +11,10 @@ public class AppController extends Application {
 	private static AppController instance;
 	private static Context appContext;
 
-	private static final String SHARED_PREFERENCES_KEY = "com.grishberg.xmppchatclient";
-	private static final String SHARED_PREFERENCES_LOGIN_KEY = "com.grishberg.xmppchatclient.login";
+	private static final String SHARED_PREFERENCES_KEY 			= "com.grishberg.xmppchatclient";
+	private static final String SHARED_PREFERENCES_LOGIN_KEY 	= "com.grishberg.xmppchatclient.login";
 	private static final String SHARED_PREFERENCES_PASSWORD_KEY = "com.grishberg.xmppchatclient.password";
-	private static final String SHARED_PREFERENCES_SERVER_KEY = "com.grishberg.xmppchatclient.server";
+	private static final String SHARED_PREFERENCES_SERVER_KEY 	= "com.grishberg.xmppchatclient.server";
 
 	@Override
 	public void onCreate() {

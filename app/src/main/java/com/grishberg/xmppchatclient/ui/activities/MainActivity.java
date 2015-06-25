@@ -14,7 +14,6 @@ import android.view.MenuItem;
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
-import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 
 /**
  * Main activity is Chat rooms screen
@@ -22,7 +21,7 @@ import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 public class MainActivity extends AppCompatActivity {
 
 	private static final int REQUEST_CODE_LOGIN = 0;
-	private IInteractionWithService	mService;
+	private ApiService	mService;
 	private boolean mIsBound;
 	private boolean mIsLogined;
 

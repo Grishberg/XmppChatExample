@@ -8,11 +8,13 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
+
+import com.grishberg.xmppchatclient.AppController;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
 import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.SmackException;
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
 import org.jivesoftware.smack.chat.ChatManagerListener;
@@ -21,14 +23,15 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 import org.jivesoftware.smack.roster.Roster;
 import org.jivesoftware.smack.roster.RosterEntry;
+import org.jivesoftware.smack.roster.RosterGroup;
 import org.jivesoftware.smack.roster.RosterListener;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
 
 import java.util.Collection;
 
-public class ApiService extends Service implements IInteractionWithService
-		, ChatManagerListener
+public class ApiService extends Service implements
+		ChatManagerListener
 		, MessageListener
 		, ChatMessageListener
 		, RosterListener {
@@ -59,10 +62,11 @@ public class ApiService extends Service implements IInteractionWithService
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		Log.d(TAG,"Start service");
 		return mStartMode;
 	}
 
-	@Override
+
 	public void connect(String login, String password, String server ) {
 		mLogin		= login;
 		mPassword	= password;
@@ -76,7 +80,6 @@ public class ApiService extends Service implements IInteractionWithService
 		mConnectionThread.start();
 	}
 
-	@Override
 	public void disconnect() {
 		mConnection.disconnect();
 	}
@@ -104,9 +107,20 @@ public class ApiService extends Service implements IInteractionWithService
 
 			// setup roster
 			mRoster			= Roster.getInstanceFor(mConnection);
-			Collection<RosterEntry> entries = mRoster.getEntries();
-			for (RosterEntry entry : entries) {
+
+
+
+			// get contacts
+			Collection<RosterGroup> groups = mRoster.getGroups();
+			for (RosterGroup entry : groups) {
 				Log.d(TAG, "roster element "+entry.getName());
+			}
+
+			// get users
+			Collection<RosterEntry> users = mRoster.getEntries();
+			for (RosterEntry entry : users) {
+				//AppController.getAppContext().getContentResolver().insert()
+				Log.d(TAG, "roster element "+entry.getUser());
 			}
 
 			// Create a new presence. Pass in false to indicate we're unavailable._
@@ -158,6 +172,11 @@ public class ApiService extends Service implements IInteractionWithService
 	@Override
 	public void processMessage(Chat chat, Message message) {
 		Log.d(TAG, "on message from chat");
+		try {
+			chat.sendMessage( message.getBody() );
+		} catch (Exception e){
+
+		}
 	}
 
 	//------ Roster events ------------
@@ -200,7 +219,7 @@ public class ApiService extends Service implements IInteractionWithService
 
 	// service container for Activity
 	public class MyBinder extends Binder{
-		public IInteractionWithService getService() {
+		public ApiService getService() {
 			return ApiService.this;
 		}
 	}

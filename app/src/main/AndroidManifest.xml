@@ -43,28 +43,22 @@
             android:name=".ui.activities.FindUserActivity"
             android:label="@string/title_activity_find_user" >
         </activity>
+
         <activity
             android:name=".ui.activities.ChatActivity"
             android:label="@string/title_activity_chat" >
         </activity>
-        <activity
-            android:name=".ui.activities.ChatRoomsActivity"
-            android:label="@string/title_activity_chat_rooms" >
-        </activity>
-        <activity
-            android:name=".LoginActivity"
-            android:label="@string/title_activity_login"
-            android:windowSoftInputMode="adjustResize|stateHidden" >
-        </activity>
 
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
-
+        <!--             android:windowSoftInputMode="adjustResize|stateHidden" > -->
         <activity
             android:name=".ui.activities.LoginActivity"
             android:label="@string/title_activity_login" >
         </activity>
+
+        <provider
+            android:authorities="com.grishberg.xmppchatclient.content_provider"
+            android:name="com.grishberg.xmppchatclient.data.db.AppContentProvider"
+            android:exported="false"/>
     </application>
 
 </manifest>

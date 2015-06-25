@@ -23,7 +23,6 @@ import android.widget.Toast;
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
-import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 
 public class LoginActivity extends AppCompatActivity
 implements View.OnClickListener{
@@ -39,7 +38,7 @@ implements View.OnClickListener{
 	private String		mServer;
 	private String		mPassword;
 	private ProgressBar	mProgress;
-	private IInteractionWithService mService;
+	private ApiService mService;
 	private boolean			mIsBound;
 	private boolean			mIsNeedConnect;
 	private boolean			mIsChangeProfile;
@@ -148,11 +147,7 @@ implements View.OnClickListener{
 			int connectionStatus = intent.getIntExtra(ApiService.EXTRA_CONNECTION_STATUS, -1);
 			switch (connectionStatus){
 				case ApiService.CONNECTION_STATUS_OK:
-					// store login
-					AppController.setUserSettings(mLogin, mPasswordEditText.getText().toString()
-							,mServer );
-					setResult(RESULT_OK, RESULT_PARAM_NAME, null);
-					finish();
+					onFinish();
 					// close activity
 					break;
 				case ApiService.CONNECTION_STATUS_ERROR_CONNECTION:
@@ -170,6 +165,14 @@ implements View.OnClickListener{
 			}
 		}
 	};
+
+	private void onFinish(){
+		// store login
+		AppController.setUserSettings(mLogin, mPasswordEditText.getText().toString()
+				,mServer );
+		setResult(RESULT_OK);
+		finish();
+	}
 
 	private void enableFields() {
 		mSiginButton.setEnabled(true);
