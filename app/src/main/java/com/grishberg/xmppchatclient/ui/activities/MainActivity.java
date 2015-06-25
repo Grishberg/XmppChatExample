@@ -7,26 +7,37 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
 import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 
+/**
+ * Main activity is Chat rooms screen
+ */
 public class MainActivity extends AppCompatActivity {
 
+	private static final int REQUEST_CODE_LOGIN = 0;
 	private IInteractionWithService	mService;
 	private boolean mIsBound;
+	private boolean mIsLogined;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		startActivity(new Intent(this,LoginActivity.class));
+		startService(new Intent(this,ApiService.class));
+		bindService( new Intent(this, ApiService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
 
+		//if not logined - open Login activity
+		startActivityForResult(new Intent(this, LoginActivity.class), REQUEST_CODE_LOGIN);
 	}
+
 	private ServiceConnection mServiceConnection = new ServiceConnection() {
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
@@ -40,10 +51,17 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
+
+	private void onLogined(){
+		// download Roster
+	}
+
 	@Override
 	protected void onStart() {
 		super.onStart();
-		bindService( new Intent(this, ApiService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+		if(!mIsBound) {
+			bindService(new Intent(this, ApiService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+		}
 	}
 
 	@Override
@@ -54,6 +72,20 @@ public class MainActivity extends AppCompatActivity {
 		mIsBound = false;
 	}
 
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if(requestCode == REQUEST_CODE_LOGIN) {
+			if (resultCode == LoginActivity.RESULT_CODE_LOGINED) {
+				// we are logined
+				mIsLogined = true;
+				onLogined();
+			} else
+			{
+
+			}
+		}
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {

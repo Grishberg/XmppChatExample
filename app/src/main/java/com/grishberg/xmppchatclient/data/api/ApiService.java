@@ -49,11 +49,17 @@ public class ApiService extends Service implements IInteractionWithService
 	private String				mPassword;
 	private String				mServer;
 	private Thread				mConnectionThread;
+	private int 				mStartMode = START_REDELIVER_INTENT;
 
 	private MyBinder binder = new MyBinder();
 
 	public ApiService() {
 		mConnectionHandler	= new Handler();
+	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		return mStartMode;
 	}
 
 	@Override

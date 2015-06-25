@@ -28,6 +28,10 @@ import com.grishberg.xmppchatclient.data.api.listeners.IInteractionWithService;
 public class LoginActivity extends AppCompatActivity
 implements View.OnClickListener{
 
+	public static final int RESULT_CODE_LOGINED 	= 1;
+	public static final int RESULT_CODE_NOT_LOGINED = 2;
+	public static final String RESULT_PARAM_NAME	= "extraName";
+
 	private Button mSiginButton;
 	private EditText mLoginEditText;
 	private EditText mPasswordEditText;
@@ -37,7 +41,8 @@ implements View.OnClickListener{
 	private ProgressBar	mProgress;
 	private IInteractionWithService mService;
 	private boolean			mIsBound;
-	private boolean			mIsChaneProfile;
+	private boolean			mIsNeedConnect;
+	private boolean			mIsChangeProfile;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -49,14 +54,16 @@ implements View.OnClickListener{
 		mLoginEditText		= (EditText) findViewById(R.id.login_form_jid);
 		mPasswordEditText	= (EditText) findViewById(R.id.login_form_password);
 		mProgress			= (ProgressBar) findViewById(R.id.login_progress);
-		mLogin	= AppController.getLogin();
-		mServer	= AppController.getServer();
-		mPassword	= AppController.getPassword();
+		mLogin				= AppController.getLogin();
+		mServer				= AppController.getServer();
+		mPassword			= AppController.getPassword();
 
 		if(!TextUtils.isEmpty(mLogin)){
 			mLoginEditText.setText(mLogin +"@" + mServer);
 			mPasswordEditText.setText(mPassword);
+			mIsNeedConnect	= true;
 		}
+
 	}
 
 	/** Defines callbacks for service binding, passed to bindService() */
@@ -66,6 +73,9 @@ implements View.OnClickListener{
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			mService	= ((ApiService.MyBinder)service).getService();
 			mIsBound	= true;
+			if(mIsNeedConnect){
+				connect();
+			}
 		}
 
 		@Override
@@ -88,13 +98,21 @@ implements View.OnClickListener{
 			}
 			mLogin		= mLoginEditText.getText().toString().substring(0,atPos);
 			mServer		= mLoginEditText.getText().toString().substring(atPos + 1);
-			if(mIsBound) {
-				mProgress.setVisibility(View.VISIBLE);
-				mSiginButton.setEnabled(false);
-				mService.connect(mLogin,mPasswordEditText.getText().toString(), mServer);
-			}
+			mPassword	= mPasswordEditText.getText().toString();
+			connect();
 		}
 	}
+
+	private void connect() {
+		if(mIsBound) {
+			mProgress.setVisibility(View.VISIBLE);
+			mLoginEditText.setEnabled(false);
+			mPasswordEditText.setEnabled(false);
+			mSiginButton.setEnabled(false);
+			mService.connect(mLogin,mPassword, mServer);
+		}
+	}
+
 
 	@Override
 	protected void onStart() {
@@ -118,9 +136,6 @@ implements View.OnClickListener{
 
 	@Override
 	protected void onResume() {
-		// Register to receive messages.
-		// We are registering an observer (mMessageReceiver) to receive Intents
-		// with actions named "custom-event-name".
 		LocalBroadcastManager.getInstance(this).registerReceiver(
 				mMessageReceiver, new IntentFilter(ApiService.EVENT_ON_CONNECTED_RESULT));
 		super.onResume();
@@ -136,24 +151,31 @@ implements View.OnClickListener{
 					// store login
 					AppController.setUserSettings(mLogin, mPasswordEditText.getText().toString()
 							,mServer );
+					setResult(RESULT_OK, RESULT_PARAM_NAME, null);
 					finish();
 					// close activity
 					break;
 				case ApiService.CONNECTION_STATUS_ERROR_CONNECTION:
 					showMessage(getString(R.string.error_connection_problem));
-					mSiginButton.setEnabled(true);
+					enableFields();
 					break;
 				case ApiService.CONNECTION_STATUS_BAD_PASSWORD:
 					showMessage(getString(R.string.error_invalid_login));
-					mSiginButton.setEnabled(true);
+					enableFields();
 					break;
 				case ApiService.CONNECTION_STATUS_BAD_SERVER:
 					showMessage(getString(R.string.error_incorrect_server));
-					mSiginButton.setEnabled(true);
+					enableFields();
 					break;
 			}
 		}
 	};
+
+	private void enableFields() {
+		mSiginButton.setEnabled(true);
+		mLoginEditText.setEnabled(true);
+		mPasswordEditText.setEnabled(true);
+	}
 
 	private void showMessage(String msg){
 		//tODO: Toast
@@ -162,31 +184,9 @@ implements View.OnClickListener{
 
 	@Override
 	public void onBackPressed() {
-		if(mIsChaneProfile) {
+		if(mIsChangeProfile) {
 			super.onBackPressed();
 		}
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.menu_login, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		int id = item.getItemId();
-
-		//noinspection SimplifiableIfStatement
-		if (id == R.id.action_settings) {
-			return true;
-		}
-
-		return super.onOptionsItemSelected(item);
 	}
 
 }
