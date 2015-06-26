@@ -19,43 +19,33 @@ public class AppContentProvider  extends ContentProvider {
 	private static final String AUTHORITY = "com.grishberg.xmppchatclient.content_provider";
 
 	private static final String PATH_GROUPS		= DbHelper.TABLE_GROUPS;
-	private static final String PATH_CHATS		= DbHelper.TABLE_CHATS;
 	private static final String PATH_USERS		= DbHelper.TABLE_USERS;
 	private static final String PATH_MESSAGES	= DbHelper.TABLE_MESSAGES;
-	private static final String PATH_RELATIONS	= DbHelper.TABLE_RELATONS;
 
 	private static final String PATH_GROUPS_NOT_EMPTY	= "notEmptyGroups";
 
 	public static final Uri CONTENT_URI_GROUPS		= Uri.parse("content://" + AUTHORITY + "/" + PATH_GROUPS);
-	public static final Uri CONTENT_URI_CHATS		= Uri.parse("content://" + AUTHORITY + "/" + PATH_CHATS);
 	public static final Uri CONTENT_URI_USERS		= Uri.parse("content://" + AUTHORITY + "/" + PATH_USERS);
 	public static final Uri CONTENT_URI_MESSAGES	= Uri.parse("content://" + AUTHORITY + "/" + PATH_MESSAGES);
-	public static final Uri CONTENT_URI_RELATIONS	= Uri.parse("content://" + AUTHORITY + "/" + PATH_RELATIONS);
 
 	public static final Uri CONTENT_URI_CATEGORIES_NOT_EMPTY	= Uri.parse("content://" + AUTHORITY + "/" + PATH_GROUPS_NOT_EMPTY);
 
 	private static final int CODE_GROUPS			= 0;
 	private static final int CODE_GROUPS_ID			= 1;
-	private static final int CODE_CHATS				= 2;
-	private static final int CODE_CHATS_ID			= 3;
 	private static final int CODE_USERS				= 4;
 	private static final int CODE_USERS_ID			= 5;
 	private static final int CODE_MESSAGES			= 6;
 	private static final int CODE_MESSAGES_ID		= 7;
 	private static final int CODE_GROUPS_NOT_EMPTY	= 8;
-	private static final int CODE_RELATIONS			= 9;
 
 	private static final UriMatcher URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
 
 	static {
 		URI_MATCHER.addURI(AUTHORITY, PATH_GROUPS, 			CODE_GROUPS);
-		URI_MATCHER.addURI(AUTHORITY, PATH_CHATS, 			CODE_CHATS);
 		URI_MATCHER.addURI(AUTHORITY, PATH_USERS, 			CODE_USERS);
 		URI_MATCHER.addURI(AUTHORITY, PATH_MESSAGES, 		CODE_MESSAGES);
-		URI_MATCHER.addURI(AUTHORITY, PATH_RELATIONS, 		CODE_RELATIONS);
 
 		URI_MATCHER.addURI(AUTHORITY, PATH_GROUPS+ "/#", 	CODE_GROUPS_ID);
-		URI_MATCHER.addURI(AUTHORITY, PATH_CHATS+ "/#", 	CODE_CHATS_ID);
 		URI_MATCHER.addURI(AUTHORITY, PATH_USERS+ "/#", 	CODE_USERS_ID);
 		URI_MATCHER.addURI(AUTHORITY, PATH_MESSAGES+ "/#",	CODE_MESSAGES_ID);
 
@@ -70,10 +60,6 @@ public class AppContentProvider  extends ContentProvider {
 
 	public static Uri getUsersUri(Long id){
 		return Uri.withAppendedPath(AppContentProvider.CONTENT_URI_USERS, id.toString());
-	}
-
-	public static Uri getChatsUri(Long id){
-		return Uri.withAppendedPath(AppContentProvider.CONTENT_URI_CHATS, id.toString());
 	}
 
 	public static Uri getMessagesUri(Long id){
@@ -98,15 +84,12 @@ public class AppContentProvider  extends ContentProvider {
 		int uriId = URI_MATCHER.match(uri);
 		Cursor cursor = null;
 		switch (uriId) {
-			case CODE_CHATS:
 			case CODE_USERS:
 			case CODE_GROUPS:
 			case CODE_MESSAGES:
-			case CODE_RELATIONS:
 				cursor = dbHelper.getReadableDatabase()
 						.query(getTableName(uriId), projection, selection, selectionArgs, null, null, sortOrder);
 				break;
-			case CODE_CHATS_ID:
 			case CODE_GROUPS_ID:
 			case CODE_USERS_ID:
 			case CODE_MESSAGES_ID:
@@ -139,10 +122,10 @@ public class AppContentProvider  extends ContentProvider {
 		SQLiteDatabase db 	= dbHelper.getWritableDatabase();
 		switch (uriId){
 			case CODE_GROUPS:
-			case CODE_CHATS:
+				id = insertOrUpdateById(db,uri, uriId, values, DbHelper.GROUPS_NAME);
+				break;
 			case CODE_USERS:
-			case CODE_RELATIONS:
-				id = inserIfNotExist(db,uri,values);
+				id = insertOrUpdateById(db,uri, uriId, values, DbHelper.USERS_JID);
 				break;
 
 			case CODE_MESSAGES:
@@ -166,13 +149,11 @@ public class AppContentProvider  extends ContentProvider {
 		switch (uriId){
 			case CODE_GROUPS:
 			case CODE_MESSAGES:
-			case CODE_CHATS:
 			case CODE_USERS:
 				// delete all articles
 				result	= db.delete(getTableName(uriId), selection, selectionArgs);
 				break;
 
-			case CODE_CHATS_ID:
 			case CODE_GROUPS_ID:
 			case CODE_MESSAGES_ID:
 			case CODE_USERS_ID:
@@ -195,14 +176,11 @@ public class AppContentProvider  extends ContentProvider {
 		switch (uriId){
 			case CODE_GROUPS:
 			case CODE_MESSAGES:
-			case CODE_CHATS:
 			case CODE_USERS:
-			case CODE_RELATIONS:
 				// update all articles
 				result	= db.update(getTableName(uriId), values, selection, selectionArgs);
 				break;
 
-			case CODE_CHATS_ID:
 			case CODE_GROUPS_ID:
 			case CODE_MESSAGES_ID:
 			case CODE_USERS_ID:
@@ -225,10 +203,6 @@ public class AppContentProvider  extends ContentProvider {
 	private String getTableName(int match) {
 		String table = null;
 		switch (match) {
-			case CODE_CHATS:
-			case CODE_CHATS_ID:
-				table = dbHelper.TABLE_CHATS;
-				break;
 			case CODE_GROUPS:
 			case CODE_GROUPS_ID:
 				table = dbHelper.TABLE_GROUPS;
@@ -241,9 +215,6 @@ public class AppContentProvider  extends ContentProvider {
 			case CODE_MESSAGES_ID:
 				table = dbHelper.TABLE_MESSAGES;
 				break;
-			case CODE_RELATIONS:
-				table = DbHelper.TABLE_RELATONS;
-				break;
 
 			default:
 				throw new IllegalArgumentException("Invalid DB code: " + match);
@@ -251,22 +222,35 @@ public class AppContentProvider  extends ContentProvider {
 		return table;
 	}
 
-	private long inserIfNotExist(SQLiteDatabase db, Uri uri, ContentValues values){
-		long result	= -1;
-		int uriId 	= URI_MATCHER.match(uri);
-		result = db.insertWithOnConflict(getTableName(uriId), null, values, SQLiteDatabase.CONFLICT_IGNORE);
-		return result;
-	}
-
-	private long insertOrUpdateById(SQLiteDatabase db, Uri uri, String table,
-									ContentValues values, String column) throws SQLiteConstraintException {
+	/**
+	 *
+	 * @param db -current db
+	 * @param uri - uri
+	 * @param uriId uri index
+	 * @param values values
+	 * @param column column for condition
+	 * @return
+	 * @throws SQLiteConstraintException
+	 */
+	private long insertOrUpdateById(SQLiteDatabase db,Uri uri, int uriId,
+									ContentValues values, String column) throws SQLiteConstraintException{
 		long result	= -1;
 
 		try {
-			result	= db.insertOrThrow(table, null, values);
+			result	= db.insertOrThrow(getTableName(uriId), null, values);
 		} catch (SQLiteConstraintException e) {
 			int nrRows = update(uri, values, column + "=?",
 					new String[]{values.getAsString(column)});
+
+			Cursor cursor = db.query(getTableName(uriId)
+					, new String[]{DbHelper.COLUMN_ID}
+					, column + "=?"
+					, new String[]{ values.getAsString(column) }
+					,null,null,null);
+			if(cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()){
+				result = cursor.getLong(cursor.getColumnIndex(DbHelper.COLUMN_ID));
+			}
+
 			if (nrRows == 0) {
 				throw e;
 			}

@@ -13,11 +13,12 @@ import android.util.Log;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
+import com.grishberg.xmppchatclient.data.db.QueryHelper;
 import com.grishberg.xmppchatclient.data.db.containers.ChatContainer;
 import com.grishberg.xmppchatclient.data.db.containers.GroupContainer;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
-import com.grishberg.xmppchatclient.data.db.containers.Relation;
 import com.grishberg.xmppchatclient.data.db.containers.User;
+import com.grishberg.xmppchatclient.framework.Utils;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
 import org.jivesoftware.smack.ConnectionListener;
@@ -34,11 +35,14 @@ import org.jivesoftware.smack.roster.Roster;
 import org.jivesoftware.smack.roster.RosterEntry;
 import org.jivesoftware.smack.roster.RosterGroup;
 import org.jivesoftware.smack.roster.RosterListener;
+import org.jivesoftware.smack.roster.packet.RosterPacket;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ApiService extends Service implements
 		ChatManagerListener
@@ -56,7 +60,6 @@ public class ApiService extends Service implements
 	public static final int CONNECTION_STATUS_BAD_SERVER		= 2;
 	public static final int CONNECTION_STATUS_ERROR_CONNECTION	= 3;
 
-	private AbstractXMPPConnection 	mConnection;
 	private ChatManager 		mChatManager;
 	private Handler 			mConnectionHandler;
 	private Roster 				mRoster;
@@ -65,12 +68,15 @@ public class ApiService extends Service implements
 	private String				mServer;
 	private Thread				mConnectionThread;
 	private int 				mStartMode = START_REDELIVER_INTENT;
-	private boolean				mIsConnected;
+	private Map<Long, Chat> 	mPrivateChats;
 
+	private volatile AbstractXMPPConnection	mConnection;
+	private volatile boolean				mIsConnected;
 	private MyBinder binder = new MyBinder();
 
 	public ApiService() {
 		mConnectionHandler	= new Handler();
+		mPrivateChats		= new HashMap<>();
 	}
 
 	@Override
@@ -99,11 +105,13 @@ public class ApiService extends Service implements
 
 	private void doConnect(){
 		try {
+			QueryHelper.setOfflineStatus();
 			// Create the configuration for this new connection
 			XMPPTCPConnectionConfiguration.Builder configBuilder = XMPPTCPConnectionConfiguration.builder();
 			configBuilder.setUsernameAndPassword(mLogin, mPassword);
 			configBuilder.setResource("mobile");
 			configBuilder.setServiceName(mServer);
+			configBuilder.setSendPresence(true);
 			configBuilder.setHost(mServer);
 
 			mConnection = new XMPPTCPConnection(configBuilder.build());
@@ -121,26 +129,8 @@ public class ApiService extends Service implements
 
 			// setup roster
 			mRoster			= Roster.getInstanceFor(mConnection);
+			getGroupsAndUsers();
 
-			// get groups
-			Collection<RosterGroup> groups = mRoster.getGroups();
-			for (RosterGroup group : groups) {
-				// add group to DB if not exists
-				GroupContainer groupContainer = new GroupContainer(group.getName());
-				Uri uri	= AppController.getAppContext().getContentResolver()
-						.insert(AppContentProvider.CONTENT_URI_GROUPS,groupContainer.buildContentValues());
-				long groupId = Long.valueOf(uri.getLastPathSegment());
-
-				for (RosterEntry user : group.getEntries()) {
-
-					User userContainer = new User(user.getUser(),user.getName(), groupId);
-					AppController.getAppContext().getContentResolver()
-							.insert(AppContentProvider.CONTENT_URI_USERS
-									,userContainer.buildContentValues() );
-					Log.d(TAG, "	roster user " + user.getUser());
-				}
-				Log.d(TAG, "roster group "+group.getName());
-			}
 
 			// Create a new presence. Pass in false to indicate we're unavailable._
 			Presence presence = new Presence(Presence.Type.available);
@@ -161,18 +151,49 @@ public class ApiService extends Service implements
 	}
 
 	/**
+	 * store groups and users to DB
+	 */
+	private void getGroupsAndUsers() {
+
+		// get groups
+		Collection<RosterGroup> groups = mRoster.getGroups();
+		for (RosterGroup group : groups) {
+
+			// add group to DB if not exists
+			GroupContainer groupContainer = new GroupContainer(group.getName());
+			Uri groupUri	= AppController.getAppContext().getContentResolver()
+					.insert(AppContentProvider.CONTENT_URI_GROUPS,groupContainer.buildContentValues());
+			long groupId = Long.valueOf(groupUri.getLastPathSegment());
+
+			for (RosterEntry user : group.getEntries()) {
+
+				String jid	= Utils.extractJid(user.getUser());
+				String name	= user.getName();
+				RosterPacket.ItemStatus staus	= user.getStatus();
+				User userContainer = new User(jid, name, groupId, 0, false, 0);
+				Uri userUri = AppController.getAppContext().getContentResolver()
+						.insert(AppContentProvider.CONTENT_URI_USERS
+								,userContainer.buildContentValues() );
+				Log.d(TAG, "	roster user " + user.getUser());
+			}
+			Log.d(TAG, "roster group "+group.getName());
+		}
+	}
+
+	/**
 	 * event when incoming chat
 	 * @param chat
 	 * @param createdLocally
 	 */
 	@Override
 	public void chatCreated(Chat chat, boolean createdLocally) {
-		//TODO: add to DB
-		ChatContainer chatContainer = new ChatContainer(chat.getParticipant(),null);
-		AppController.getAppContext().getContentResolver()
-				.insert(AppContentProvider.CONTENT_URI_CHATS,chatContainer.buildContentValues());
+
 		Log.d(TAG, "on chat created");
+		String jid	= Utils.extractJid(chat.getParticipant() );
+		long userId	= QueryHelper.getUserByJid(jid);
+		mPrivateChats.put(userId, chat);
 		chat.addMessageListener(this);
+
 	}
 
 	/**
@@ -194,28 +215,21 @@ public class ApiService extends Service implements
 	@Override
 	public void processMessage(Chat chat, Message message) {
 		Log.d(TAG, "on message from chat");
-		//1) get chat id
+
 		ContentResolver contentResolver = AppController.getAppContext().getContentResolver();
-		ChatContainer chatContainer = new ChatContainer(chat.getParticipant(),null);
-		Uri chatUri = contentResolver
-				.insert(AppContentProvider.CONTENT_URI_CHATS, chatContainer.buildContentValues());
-		long chatId = Long.valueOf(chatUri.getLastPathSegment());
-		//2) insert message by chat id
 
-		User user 	= new User(chat.getParticipant(), null, 0);
-		Uri userUri = contentResolver
-				.insert(AppContentProvider.CONTENT_URI_USERS, user.buildContentValues());
-		long userId = Long.valueOf(userUri.getLastPathSegment());
-
-		// store relation
-		Relation relation = new Relation(userId,chatId);
-		contentResolver.insert(AppContentProvider.CONTENT_URI_RELATIONS, relation.buildContentValues());
+		// get user id
+		long userId = QueryHelper.getUserByJid(chat.getParticipant());
 
 		// store message to DB
-		MessageContainer messageContainer = new MessageContainer(userId, chatId, new Date().getTime()
-				,false,true,message.getBody(), message.getSubject());
+		MessageContainer messageContainer = new MessageContainer(userId, new Date().getTime()
+				, message.getBody()
+				, message.getSubject());
+
 		contentResolver.insert(AppContentProvider.CONTENT_URI_MESSAGES
 				,messageContainer.buildContentValues());
+
+		//TODO: remove
 		try {
 			chat.sendMessage( message.getBody() );
 		} catch (Exception e){
@@ -223,30 +237,57 @@ public class ApiService extends Service implements
 		}
 	}
 
+	public void sendMessage(final long userId, final String messageText){
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				doSendMessage(userId, messageText);
+			}
+		}).start();
+	}
+
+	private void doSendMessage(long userId, String messageText){
+		if(mIsConnected){
+			Chat currentChat = mPrivateChats.get(userId);
+			if( currentChat == null){
+				String jid	= QueryHelper.getJidById( userId );
+				currentChat = mChatManager.createChat( jid );
+				mPrivateChats.put(userId, currentChat);
+			}
+		}
+	}
+
 	//----------- Connection listener ---------------
-	//TODO: send local broadcast
 	@Override
 	public void connected(XMPPConnection connection) {
+		Log.d(TAG,"on connected" );
 	}
 
 	@Override
 	public void authenticated(XMPPConnection connection, boolean resumed) {
 		mIsConnected = true;
+		sendOnConnectionStatusChanged(CONNECTION_STATUS_OK);
+		Log.d(TAG, "authenticated resumed="+resumed);
 	}
 
 	@Override
 	public void connectionClosed() {
 		mIsConnected = false;
+		sendOnConnectionStatusChanged(CONNECTION_STATUS_ERROR_CONNECTION);
+
 	}
 
 	@Override
 	public void connectionClosedOnError(Exception e) {
 		mIsConnected = false;
+		//sendOnConnectionStatusChanged(CONNECTION_STATUS_ERROR_CONNECTION);
+		Log.d(TAG, "connectionClosedOnError err="+e.getMessage() );
 	}
 
 	@Override
 	public void reconnectionSuccessful() {
 		mIsConnected = true;
+		sendOnConnectionStatusChanged(CONNECTION_STATUS_OK);
 	}
 
 	@Override
@@ -281,7 +322,6 @@ public class ApiService extends Service implements
 		Log.d(TAG,"on presence change");
 
 	}
-
 	//------------------- end roster events --------------------
 
 	public boolean isConnected() {

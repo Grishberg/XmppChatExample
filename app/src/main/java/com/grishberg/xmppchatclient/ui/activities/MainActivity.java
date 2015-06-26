@@ -14,23 +14,31 @@ import android.view.MenuItem;
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
+import com.grishberg.xmppchatclient.ui.fragments.UserListFragment;
+import com.grishberg.xmppchatclient.ui.listeners.IInteractWithUserListFragment;
+import com.grishberg.xmppchatclient.ui.listeners.IInteractionUserListWithActivity;
 
 /**
  * Main activity is Chat rooms screen
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements
+		IInteractionUserListWithActivity {
 
 	private static final int REQUEST_CODE_LOGIN = 0;
 	private ApiService	mService;
 	private boolean 	mIsBound;
 	private boolean 	mIsLogined;
+	private IInteractWithUserListFragment mUserListFragment;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		getSupportFragmentManager().beginTransaction()
+				.add(R.id.userlist_fragment_container,UserListFragment.newInstance())
+				.commit();
 
-		startService(new Intent(this,ApiService.class));
+		startService(new Intent(this, ApiService.class));
 		bindService( new Intent(this, ApiService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
 
 		//if not logined - open Login activity
@@ -53,6 +61,23 @@ public class MainActivity extends AppCompatActivity {
 
 	private void onLogined(){
 		// download Roster
+	}
+
+	@Override
+	public void onRegister(IInteractWithUserListFragment fragment) {
+		mUserListFragment	= fragment;
+	}
+
+	@Override
+	public void onUnregister(IInteractWithUserListFragment fragment) {
+		mUserListFragment	= null;
+	}
+
+	@Override
+	public void onUserItemClicked(long id) {
+		Bundle bundle = new Bundle();
+		bundle.putLong(ChatActivity.EXTRA_CHAT_ID, id);
+		startActivity(new Intent(this, ChatActivity.class), bundle);
 	}
 
 	@Override
@@ -85,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}
 	}
-
+/*
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -110,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
 
 		return super.onOptionsItemSelected(item);
 	}
-
+*/
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();

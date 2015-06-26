@@ -81,8 +81,10 @@ public class ChatActivity extends AppCompatActivity implements IInteractChatWith
 	}
 
 	@Override
-	public void onSendMessage(long chatId, String message) {
-
+	public void onSendMessage(long userId, String message) {
+		if(mIsBound){
+			mService.sendMessage(userId, message);
+		}
 	}
 
 	@Override

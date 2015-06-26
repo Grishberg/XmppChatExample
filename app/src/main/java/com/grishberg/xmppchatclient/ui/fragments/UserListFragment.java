@@ -1,9 +1,14 @@
 package com.grishberg.xmppchatclient.ui.fragments;
 
 import android.app.Activity;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
+
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,20 +17,26 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
 import com.grishberg.xmppchatclient.R;
+import com.grishberg.xmppchatclient.data.db.AppContentProvider;
+import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithUserListFragment;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractionUserListWithActivity;
 
-public class UserListFragment extends Fragment implements IInteractWithUserListFragment {
+public class UserListFragment extends Fragment implements
+		IInteractWithUserListFragment
+		, LoaderManager.LoaderCallbacks<Cursor> {
+
+	public static final int USERLIST_LOADER = 2;
 	private IInteractionUserListWithActivity mListener;
-	private ListView 						mListView;
-	private SimpleCursorAdapter 			mListViewCursorAdapter;
+	private ListView 				mListView;
+	private SimpleCursorAdapter 	mListViewCursorAdapter;
 
 	// DB cursor settings
-	String[] 								mProjection;
-	String[]								mCategoryProjection;
-	private String 							mArticlesSortOrder;
-	private String 							mCategoriesSortOrder;
-	private String							mChildArticlesSortOrder;
+	String[] 						mUsersProjection;
+	private String 					mUsersFilterSelection;
+	private String[]				mUsersFilterSelectionArgs;
+	private String					mUsersSortOrder;
+
 
 	public static UserListFragment newInstance() {
 		UserListFragment fragment = new UserListFragment();
@@ -60,12 +71,72 @@ public class UserListFragment extends Fragment implements IInteractWithUserListF
 			}
 		});
 
+		mUsersProjection 			= null;
+		mUsersFilterSelection		= null;
+		mUsersFilterSelectionArgs	= null;
+		mUsersSortOrder				= DbHelper.USERS_JID + " ASC ";
+
+		fillData();
 		return view;
+	}
+
+	private void fillData() {
+		// Fields from the database (projection)
+		// Must include the _id column for the adapter to work
+		String[] from = new String[] {DbHelper.USERS_JID};
+
+		// Fields on the UI to which we map
+		int[] to = new int[] { R.id.cell_userlist_username };
+
+		mListViewCursorAdapter = new SimpleCursorAdapter(getActivity(), R.layout.cell_userlist_user
+				, null, from, to, 0);
+		mListView.setAdapter(mListViewCursorAdapter);
+		getLoaderManager().initLoader(USERLIST_LOADER, null, this);
+
 	}
 
 	private void onListViewItemClicked(long id){
 		mListener.onUserItemClicked(id);
 	}
+
+
+	//------------- Loader -------------------------------
+	@Override
+	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+		switch (id){
+			case USERLIST_LOADER:
+
+				// Returns a new CursorLoader
+				return new CursorLoader(
+						getActivity(),   // Parent activity context
+						AppContentProvider.CONTENT_URI_USERS, // Table to query
+						null, 					// Projection to return
+						mUsersFilterSelection,
+						mUsersFilterSelectionArgs,
+						mUsersSortOrder
+				);
+		}
+		return null;
+	}
+
+	@Override
+	public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+		switch (loader.getId()){
+			case USERLIST_LOADER:
+				mListViewCursorAdapter.swapCursor(data);
+				break;
+		}
+
+	}
+
+	@Override
+	public void onLoaderReset(Loader<Cursor> loader) {
+		if(loader.getId() == USERLIST_LOADER) {
+			mListViewCursorAdapter.changeCursor(null);
+		}
+	}
+
+	//----------------  ------------------------------
 
 	@Override
 	public void onAttach(Activity activity) {

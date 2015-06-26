@@ -14,6 +14,7 @@ public class ChatContainer {
 	private String name;
 	private String subject;
 
+	/*
 	private ChatContainer(long id, String name, String subject){
 		this.id			= id;
 		this.name		= name;
@@ -43,4 +44,5 @@ public class ChatContainer {
 				c.getString(nameColId),
 				c.getString(subjectColId));
 	}
+	*/
 }

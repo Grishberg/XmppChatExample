@@ -16,12 +16,18 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
+import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
+import com.grishberg.xmppchatclient.data.db.SqlQueryBuilderHelper;
 import com.grishberg.xmppchatclient.data.db.containers.ChatContainer;
+import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
+import com.grishberg.xmppchatclient.data.db.containers.User;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
+
+import java.util.Date;
 
 public class ChatFragment extends Fragment implements IInteractWithChatFragment
 		, LoaderManager.LoaderCallbacks<Cursor>
@@ -30,10 +36,9 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 	private static final int MESSAGES_LOADER = 0;
 
-	private static final String ARG_CHAT_ID = "chatId";
+	private static final String ARG_USER_ID = "userId";
 
-	private long mChatId;
-	private ChatContainer		mCurrentChat;
+	private long mUserId;
 	private ListView 			mListView;
 	private EditText 			mChatText;
 	private Button				mSendButton;
@@ -45,10 +50,10 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 
 	private IInteractChatWithActivity mListener;
 
-	public static ChatFragment newInstance(long chatId) {
+	public static ChatFragment newInstance(long userId) {
 		ChatFragment fragment = new ChatFragment();
 		Bundle args = new Bundle();
-		args.putLong(ARG_CHAT_ID, chatId);
+		args.putLong(ARG_USER_ID, userId);
 		fragment.setArguments(args);
 		return fragment;
 	}
@@ -61,10 +66,12 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (getArguments() != null) {
-			mChatId = getArguments().getLong(ARG_CHAT_ID);
-			if(mChatId > 0){
-				mMessagesFilterSelection 		= DbHelper.MESSAGES_CHAT_ID + " = ? ";
-				mMessagesFilterSelectionArgs	= new String[] { String.valueOf(mChatId)};
+			mUserId = getArguments().getLong(ARG_USER_ID);
+			if(mUserId > 0){
+				SqlQueryBuilderHelper helper	= new SqlQueryBuilderHelper();
+				mMessagesFilterSelection 		= helper.getSelection();
+				mMessagesFilterSelectionArgs	= helper.getSelectionArgs();
+				mMessagesSortOrder				= helper.getSortOrder();
 			}
 		}
 	}
@@ -111,9 +118,11 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	//on send button click
 	@Override
 	public void onClick(View v) {
-		if(!TextUtils.isEmpty(mChatText.getText().toString()) && mListener != null){
-			//TODO: add to DB
-			mListener.onSendMessage(mChatId, mChatText.getText().toString());
+		if(!TextUtils.isEmpty(mChatText.getText().toString()) &&
+				mListener != null &&
+				mListener.isConnected()){
+
+			mListener.onSendMessage(mUserId, mChatText.getText().toString());
 			// from service update when sended
 		}
 	}
