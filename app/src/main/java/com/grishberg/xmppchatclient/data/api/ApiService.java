@@ -42,6 +42,7 @@ import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
 
@@ -85,6 +86,7 @@ public class ApiService extends Service implements
 	public ApiService() {
 		mConnectionHandler	= new Handler();
 		mPrivateChats		= new HashMap<>();
+		mUserList			= new HashMap<>();
 	}
 
 	@Override
@@ -174,6 +176,7 @@ public class ApiService extends Service implements
 			public void rosterEntires(Collection<RosterEntry> rosterEntries) {
 				for (RosterEntry user : rosterEntries) {
 					long groupId	= 0;
+					Presence presence = mRoster.getPresence(user.getUser());
 					for(RosterGroup group: user.getGroups()){
 						// add group to DB if not exists
 						GroupContainer groupContainer = new GroupContainer(group.getName());
@@ -278,7 +281,7 @@ public class ApiService extends Service implements
 			}
 			try {
 				currentChat.sendMessage(messageText);
-				QueryHelper.storeMessage(0, userId, new Date(), messageText, null);
+				QueryHelper.storeMessage(1, userId, new Date(), messageText, null);
 			} catch (Exception e){
 				e.printStackTrace();
 			}

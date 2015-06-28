@@ -40,7 +40,7 @@ public class CustomMessageCursorAdapter extends CursorAdapter {
 		DateFormat df = new SimpleDateFormat("[dd.MM.yyyy HH:mm:ss]");
 		String createdAtDate = df.format(messageContainer.getCreated());
 
-		if(messageContainer.getUserId() > 0){
+		if(messageContainer.getUserId() > 1){
 			// other's messages
 			holder.chatContainer.setBackgroundResource(R.drawable.bubble_b);
 			holder.chatContainer.setGravity( Gravity.LEFT);

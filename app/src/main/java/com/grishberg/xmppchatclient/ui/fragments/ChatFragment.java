@@ -15,9 +15,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.support.v4.widget.CursorAdapter;
-import android.support.v4.widget.SimpleCursorAdapter;
-
-import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
@@ -26,7 +23,6 @@ import com.grishberg.xmppchatclient.ui.adapters.CustomMessageCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
 
-import java.util.Date;
 
 public class ChatFragment extends Fragment implements IInteractWithChatFragment
 		, LoaderManager.LoaderCallbacks<Cursor>
@@ -89,13 +85,6 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 
 		mChatText		= (EditText) view.findViewById(R.id.fragment_chat_edittext);
 
-		if(mListener!= null){
-			if(mListener.isConnected()){
-				mChatText.setEnabled(true);
-			} else {
-				mChatText.setEnabled(false);
-			}
-		}
 		mMessagesSortOrder	= DbHelper.MESSAGES_CREATED + " ASC ";
 		fillData();
 		return view;
@@ -123,6 +112,7 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 				mListener.isConnected()){
 
 			mListener.onSendMessage(mUserId, mChatText.getText().toString());
+			mChatText.setText("");
 			// from service update when sended
 		}
 	}
