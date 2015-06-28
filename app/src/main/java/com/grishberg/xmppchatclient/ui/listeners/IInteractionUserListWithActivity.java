@@ -7,4 +7,5 @@ public interface IInteractionUserListWithActivity {
 	void onRegister(IInteractWithUserListFragment fragment);
 	void onUnregister(IInteractWithUserListFragment fragment);
 	void onUserItemClicked(long id);
+	void deleteUserFromRoster(long userId);
 }

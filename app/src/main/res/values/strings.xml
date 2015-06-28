@@ -3,12 +3,15 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="action_connect">Connect</string>
+    <string name="action_delete_user">Remove from contact list</string>
     <string name="title_activity_roster">RosterActivity</string>
     <string name="title_activity_find_user">FindUserActivity</string>
     <string name="title_activity_chat">ChatActivity</string>
     <string name="title_activity_chat_rooms">ChatRoomsActivity</string>
+    <string name="fragment_chat_send_button_text">Send</string>
 
-<!-- TODO: Remove or change this placeholder text -->
+    <string name="finduser_action_add">Add user</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

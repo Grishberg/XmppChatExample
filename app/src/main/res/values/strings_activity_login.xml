@@ -5,10 +5,13 @@
     <string name="prompt_jid">login@example.com</string>
     <string name="prompt_password">Password</string>
     <string name="action_sign_in_short">Sign in</string>
+
     <string name="error_invalid_jid">This JID is invalid</string>
     <string name="error_invalid_login">This login is invalid</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_incorrect_server">This Server is incorrect</string>
+    <string name="error_not_response">Server not response</string>
+    <string name="error_unknown">Connection error</string>
     <string name="error_connection_problem">Connection problem, check internet connection</string>
     <string name="error_field_required">This field is required</string>
 </resources>

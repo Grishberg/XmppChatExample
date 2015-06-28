@@ -6,7 +6,10 @@ import android.database.Cursor;
 import android.net.Uri;
 
 import com.grishberg.xmppchatclient.AppController;
+import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
 import com.grishberg.xmppchatclient.framework.Constans;
+
+import java.util.Date;
 
 /**
  * Created by grigoriy on 26.06.15.
@@ -56,10 +59,40 @@ public class QueryHelper {
 		return result;
 	}
 
+	public static void deleteUser(long userId){
+		AppController.getAppContext().getContentResolver()
+				.delete(AppContentProvider.getUsersUri(userId),null,null);
+	}
+
 	public static void setOfflineStatus(){
 		ContentValues values = new ContentValues();
 		values.put(DbHelper.USERS_ONLINE_STATUS, Constans.USER_STATUS_OFFLINE);
 		AppController.getAppContext().getContentResolver()
 				.update(AppContentProvider.CONTENT_URI_USERS,values,null,null);
+	}
+
+	public static void storeMessage(long userId, long chatId, Date date, String body, String subject){
+		MessageContainer messageContainer = new MessageContainer(userId,chatId
+				, date.getTime()
+				, false
+				, true
+				, body
+				, subject);
+		AppController.getAppContext().getContentResolver()
+				.insert(AppContentProvider.CONTENT_URI_MESSAGES,messageContainer.buildContentValues());
+	}
+
+	public static void makeMessageReaded(long messageId){
+		ContentValues values = new ContentValues();
+		values.put(DbHelper.MESSAGES_READED, 1);
+		AppController.getAppContext().getContentResolver()
+				.update(AppContentProvider.getMessagesUri(messageId),values, null, null);
+	}
+
+	public static void makeMessageSended(long messageId){
+		ContentValues values = new ContentValues();
+		values.put(DbHelper.MESSAGES_READED, 1);
+		AppController.getAppContext().getContentResolver()
+				.update(AppContentProvider.getMessagesUri(messageId),values, null, null);
 	}
 }

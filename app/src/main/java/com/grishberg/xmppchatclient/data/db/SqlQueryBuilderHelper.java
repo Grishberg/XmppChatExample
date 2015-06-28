@@ -17,7 +17,7 @@ public class SqlQueryBuilderHelper {
 
 	public void makeMessageHistoryQuery(Long userId){
 		mUri			= AppContentProvider.CONTENT_URI_MESSAGES;
-		mSelection		= DbHelper.COLUMN_ID + " = ? ";
+		mSelection		= DbHelper.MESSAGES_CHAT_ID + " = ? ";
 		mSelectionArgs	= new String[] { userId.toString()};
 		mSortOrder		= DbHelper.MESSAGES_CREATED +" ASC";
 	}

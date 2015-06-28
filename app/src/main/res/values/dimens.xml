@@ -5,4 +5,13 @@
 
     <dimen name="fragment_userlist_statusicon_width">32dp</dimen>
     <dimen name="fragment_userlist_statusicon_height">32dp</dimen>
+    <dimen name="cell_message_tab_width">32dp</dimen>
+
+    <dimen name="fragment_chat_statusicon_width">10dp</dimen>
+    <dimen name="fragment_chat_statusicon_height">10dp</dimen>
+
+    <dimen name="fragment_userlist_action_size">40dp</dimen>
+    <dimen name="fragment_userlist_action_button_range">20dp</dimen>
+
+
 </resources>

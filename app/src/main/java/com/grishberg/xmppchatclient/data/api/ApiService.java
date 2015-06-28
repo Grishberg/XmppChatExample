@@ -14,7 +14,6 @@ import android.util.Log;
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.QueryHelper;
-import com.grishberg.xmppchatclient.data.db.containers.ChatContainer;
 import com.grishberg.xmppchatclient.data.db.containers.GroupContainer;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
 import com.grishberg.xmppchatclient.data.db.containers.User;
@@ -32,6 +31,7 @@ import org.jivesoftware.smack.chat.ChatMessageListener;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 import org.jivesoftware.smack.roster.Roster;
+import org.jivesoftware.smack.roster.RosterEntries;
 import org.jivesoftware.smack.roster.RosterEntry;
 import org.jivesoftware.smack.roster.RosterGroup;
 import org.jivesoftware.smack.roster.RosterListener;
@@ -44,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class ApiService extends Service implements
 		ChatManagerListener
 		, MessageListener
@@ -51,14 +52,20 @@ public class ApiService extends Service implements
 		, RosterListener
 		, ConnectionListener{
 	private static final String TAG = "XmppChat.ApiService";
+	public static final String ACTION_ON_ROSTER_ADD_USER_RESULT 	= "onRosterAddUser";
 	public static final String ACTION_ON_CONNECTED_RESULT 			= "onConnectedResult";
+
 	public static final String ACTION_ON_CONNECTION_STATUS_CHANGED 	= "onConnectionChanged";
 	public static final String EXTRA_CONNECTION_STATUS 				= "connectionStatus";
+	public static final String EXTRA_ADD_USER_STATUS 				= "addUserStatus";
 
 	public static final int CONNECTION_STATUS_OK				= 0;
 	public static final int CONNECTION_STATUS_BAD_PASSWORD		= 1;
 	public static final int CONNECTION_STATUS_BAD_SERVER		= 2;
 	public static final int CONNECTION_STATUS_ERROR_CONNECTION	= 3;
+	public static final int CONNECTION_STATUS_ERROR_NORESPONSE	= 4;
+	public static final int CONNECTION_STATUS_ERROR_UNKNOWN		= 5;
+	public static final int ROSTER_ADD_USER_STATUS_OK 			= 6;
 
 	private ChatManager 		mChatManager;
 	private Handler 			mConnectionHandler;
@@ -69,6 +76,7 @@ public class ApiService extends Service implements
 	private Thread				mConnectionThread;
 	private int 				mStartMode = START_REDELIVER_INTENT;
 	private Map<Long, Chat> 	mPrivateChats;
+	private Map<Long, RosterEntry>	mUserList;
 
 	private volatile AbstractXMPPConnection	mConnection;
 	private volatile boolean				mIsConnected;
@@ -129,6 +137,8 @@ public class ApiService extends Service implements
 
 			// setup roster
 			mRoster			= Roster.getInstanceFor(mConnection);
+			if (!mRoster.isLoaded())
+				mRoster.reloadAndWait();
 			getGroupsAndUsers();
 
 
@@ -144,9 +154,12 @@ public class ApiService extends Service implements
 		catch (SmackException.ConnectionException e){
 			sendOnConnectedMessage(CONNECTION_STATUS_ERROR_CONNECTION);
 		}
+		catch (SmackException.NoResponseException e){
+			sendOnConnectedMessage(CONNECTION_STATUS_ERROR_NORESPONSE);
+		}
 		catch (Exception e){
 			e.printStackTrace();
-			sendOnConnectedMessage(CONNECTION_STATUS_BAD_PASSWORD);
+			sendOnConnectedMessage(CONNECTION_STATUS_ERROR_UNKNOWN);
 		}
 	}
 
@@ -156,28 +169,36 @@ public class ApiService extends Service implements
 	private void getGroupsAndUsers() {
 
 		// get groups
-		Collection<RosterGroup> groups = mRoster.getGroups();
-		for (RosterGroup group : groups) {
+		RosterEntries rosterEntriesInterface = new RosterEntries() {
+			@Override
+			public void rosterEntires(Collection<RosterEntry> rosterEntries) {
+				for (RosterEntry user : rosterEntries) {
+					long groupId	= 0;
+					for(RosterGroup group: user.getGroups()){
+						// add group to DB if not exists
+						GroupContainer groupContainer = new GroupContainer(group.getName());
+						Uri groupUri	= AppController.getAppContext().getContentResolver()
+								.insert(AppContentProvider.CONTENT_URI_GROUPS,groupContainer.buildContentValues());
+						groupId = Long.valueOf(groupUri.getLastPathSegment());
+						Log.d(TAG, "roster group "+group.getName());
 
-			// add group to DB if not exists
-			GroupContainer groupContainer = new GroupContainer(group.getName());
-			Uri groupUri	= AppController.getAppContext().getContentResolver()
-					.insert(AppContentProvider.CONTENT_URI_GROUPS,groupContainer.buildContentValues());
-			long groupId = Long.valueOf(groupUri.getLastPathSegment());
+					}
+					String jid	= Utils.extractJid(user.getUser());
+					String name	= user.getName();
+					User userContainer = new User(jid, name, groupId, 0, false, 0);
 
-			for (RosterEntry user : group.getEntries()) {
+					Uri userUri = AppController.getAppContext().getContentResolver()
+							.insert(AppContentProvider.CONTENT_URI_USERS
+									,userContainer.buildContentValues() );
+					long userId = Long.valueOf( userUri.getLastPathSegment());
+					mUserList.put(userId, user);
 
-				String jid	= Utils.extractJid(user.getUser());
-				String name	= user.getName();
-				RosterPacket.ItemStatus staus	= user.getStatus();
-				User userContainer = new User(jid, name, groupId, 0, false, 0);
-				Uri userUri = AppController.getAppContext().getContentResolver()
-						.insert(AppContentProvider.CONTENT_URI_USERS
-								,userContainer.buildContentValues() );
-				Log.d(TAG, "	roster user " + user.getUser());
+					Log.d(TAG, "	roster user " + user.getUser());
+				}
 			}
-			Log.d(TAG, "roster group "+group.getName());
-		}
+		};
+		mRoster.getEntriesAndAddListener(this, rosterEntriesInterface);
+
 	}
 
 	/**
@@ -219,15 +240,16 @@ public class ApiService extends Service implements
 		ContentResolver contentResolver = AppController.getAppContext().getContentResolver();
 
 		// get user id
-		long userId = QueryHelper.getUserByJid(chat.getParticipant());
+		long userId = QueryHelper.getUserByJid(Utils.extractJid(chat.getParticipant()));
 
 		// store message to DB
-		MessageContainer messageContainer = new MessageContainer(userId, new Date().getTime()
+		MessageContainer messageContainer = new MessageContainer(userId,userId, new Date().getTime(),
+				true, true
 				, message.getBody()
 				, message.getSubject());
 
 		contentResolver.insert(AppContentProvider.CONTENT_URI_MESSAGES
-				,messageContainer.buildContentValues());
+				, messageContainer.buildContentValues());
 
 		//TODO: remove
 		try {
@@ -254,9 +276,38 @@ public class ApiService extends Service implements
 				currentChat = mChatManager.createChat( jid );
 				mPrivateChats.put(userId, currentChat);
 			}
+			try {
+				currentChat.sendMessage(messageText);
+				QueryHelper.storeMessage(0, userId, new Date(), messageText, null);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
 		}
 	}
 
+	public void deleteUserFromRoster(final long userId){
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				doDeleteUserFromRoster(userId);
+			}
+		}).start();
+	}
+
+	private void doDeleteUserFromRoster(long userId){
+		if(mIsConnected){
+			String jid = QueryHelper.getJidById(userId);
+			RosterEntry entry = mUserList.get(userId);
+			if(entry != null) {
+				try {
+					mRoster.removeEntry(entry);
+					QueryHelper.deleteUser(userId);
+				} catch (Exception e){
+
+				}
+			}
+		}
+	}
 	//----------- Connection listener ---------------
 	@Override
 	public void connected(XMPPConnection connection) {
@@ -322,6 +373,18 @@ public class ApiService extends Service implements
 		Log.d(TAG,"on presence change");
 
 	}
+	public void addUser(String jid, String name){
+		//TODO: run in thread
+		if(mIsConnected){
+			try {
+
+				mRoster.createEntry(jid, name, null);
+				sendOnUserAddedToRoster(ROSTER_ADD_USER_STATUS_OK);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
 	//------------------- end roster events --------------------
 
 	public boolean isConnected() {
@@ -342,6 +405,14 @@ public class ApiService extends Service implements
 		intent.putExtra(EXTRA_CONNECTION_STATUS, msg);
 		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 	}
+
+	private void sendOnUserAddedToRoster(int msg){
+		Intent intent = new Intent(ACTION_ON_ROSTER_ADD_USER_RESULT);
+		// You can also include some extra data.
+		intent.putExtra(EXTRA_ADD_USER_STATUS, msg);
+		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+	}
+
 
 	@Override
 	public IBinder onBind(Intent intent) {

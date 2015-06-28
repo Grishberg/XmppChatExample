@@ -23,10 +23,12 @@ public class AppContentProvider  extends ContentProvider {
 	private static final String PATH_MESSAGES	= DbHelper.TABLE_MESSAGES;
 
 	private static final String PATH_GROUPS_NOT_EMPTY	= "notEmptyGroups";
+	private static final String PATH_MESSAGES_WITH_JID	= "messagesWithJid";
 
 	public static final Uri CONTENT_URI_GROUPS		= Uri.parse("content://" + AUTHORITY + "/" + PATH_GROUPS);
 	public static final Uri CONTENT_URI_USERS		= Uri.parse("content://" + AUTHORITY + "/" + PATH_USERS);
 	public static final Uri CONTENT_URI_MESSAGES	= Uri.parse("content://" + AUTHORITY + "/" + PATH_MESSAGES);
+	public static final Uri CONTENT_URI_MESSAGES_WITH_JID	= Uri.parse("content://" + AUTHORITY + "/" +PATH_MESSAGES+"/"+ PATH_MESSAGES_WITH_JID);
 
 	public static final Uri CONTENT_URI_CATEGORIES_NOT_EMPTY	= Uri.parse("content://" + AUTHORITY + "/" + PATH_GROUPS_NOT_EMPTY);
 
@@ -37,6 +39,7 @@ public class AppContentProvider  extends ContentProvider {
 	private static final int CODE_MESSAGES			= 6;
 	private static final int CODE_MESSAGES_ID		= 7;
 	private static final int CODE_GROUPS_NOT_EMPTY	= 8;
+	private static final int CODE_MESSAGES_WITH_JID	= 9;
 
 	private static final UriMatcher URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -50,6 +53,7 @@ public class AppContentProvider  extends ContentProvider {
 		URI_MATCHER.addURI(AUTHORITY, PATH_MESSAGES+ "/#",	CODE_MESSAGES_ID);
 
 		URI_MATCHER.addURI(AUTHORITY, PATH_GROUPS_NOT_EMPTY,	CODE_GROUPS_NOT_EMPTY);
+		URI_MATCHER.addURI(AUTHORITY, PATH_MESSAGES+"/"+PATH_MESSAGES_WITH_JID,	CODE_MESSAGES_WITH_JID);
 	}
 
 	private static DbHelper dbHelper;
@@ -84,9 +88,9 @@ public class AppContentProvider  extends ContentProvider {
 		int uriId = URI_MATCHER.match(uri);
 		Cursor cursor = null;
 		switch (uriId) {
+
 			case CODE_USERS:
 			case CODE_GROUPS:
-			case CODE_MESSAGES:
 				cursor = dbHelper.getReadableDatabase()
 						.query(getTableName(uriId), projection, selection, selectionArgs, null, null, sortOrder);
 				break;
@@ -101,6 +105,10 @@ public class AppContentProvider  extends ContentProvider {
 
 			case CODE_GROUPS_NOT_EMPTY:
 				cursor	= getCategories();
+				break;
+			case CODE_MESSAGES:
+			case CODE_MESSAGES_WITH_JID:
+				cursor = getMessagesWithJid(selection, selectionArgs);
 				break;
 			default:
 				throw new IllegalArgumentException("Unknown URI: " + uri);
@@ -174,8 +182,8 @@ public class AppContentProvider  extends ContentProvider {
 		int uriId	= URI_MATCHER.match(uri);
 		SQLiteDatabase db = dbHelper.getWritableDatabase();
 		switch (uriId){
-			case CODE_GROUPS:
 			case CODE_MESSAGES:
+			case CODE_GROUPS:
 			case CODE_USERS:
 				// update all articles
 				result	= db.update(getTableName(uriId), values, selection, selectionArgs);
@@ -213,6 +221,7 @@ public class AppContentProvider  extends ContentProvider {
 				break;
 			case CODE_MESSAGES:
 			case CODE_MESSAGES_ID:
+			case CODE_MESSAGES_WITH_JID:
 				table = dbHelper.TABLE_MESSAGES;
 				break;
 
@@ -258,6 +267,7 @@ public class AppContentProvider  extends ContentProvider {
 		return result;
 	}
 
+	// get categories
 	private Cursor getCategories(){
 		SQLiteDatabase db = dbHelper.getReadableDatabase();
 		StringBuilder sqlBuilder = new StringBuilder("SELECT usr.");
@@ -279,6 +289,53 @@ public class AppContentProvider  extends ContentProvider {
 
 		String sql = sqlBuilder.toString();
 		return db.rawQuery(sql, null);
+	}
+
+	// get messages and users name
+	private Cursor getMessagesWithJid(String selection, String[] selectionArgs){
+
+		SQLiteDatabase db = dbHelper.getReadableDatabase();
+		StringBuilder sqlBuilder = new StringBuilder("SELECT msg.");
+		sqlBuilder.append(DbHelper.COLUMN_ID);
+		sqlBuilder.append(" AS ");
+		sqlBuilder.append(DbHelper.COLUMN_ID);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_BODY);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_CREATED);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_SENDED);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_USER_ID);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_CHAT_ID);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_READED);
+		sqlBuilder.append(", usr.");
+		sqlBuilder.append(DbHelper.USERS_JID);
+		sqlBuilder.append(", usr.");
+		sqlBuilder.append(DbHelper.USERS_NAME);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_BODY);
+		sqlBuilder.append(", msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_SUBJECT);
+		sqlBuilder.append(" FROM ");
+		sqlBuilder.append(DbHelper.TABLE_MESSAGES);
+		sqlBuilder.append(" AS msg INNER JOIN ");
+		sqlBuilder.append(DbHelper.TABLE_USERS);
+		sqlBuilder.append(" AS usr ON msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_USER_ID);
+		sqlBuilder.append(" = usr.");
+		sqlBuilder.append(DbHelper.COLUMN_ID);
+		sqlBuilder.append(" WHERE msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_CHAT_ID);
+		sqlBuilder.append(" = ?");
+		sqlBuilder.append(" ORDER BY msg.");
+		sqlBuilder.append(DbHelper.MESSAGES_CREATED);
+		sqlBuilder.append(" ASC ");
+
+		String sql = sqlBuilder.toString();
+		return db.rawQuery(sql, selectionArgs);
 	}
 }
 

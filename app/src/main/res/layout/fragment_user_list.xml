@@ -1,10 +1,31 @@
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
     <ListView
         android:id="@+id/fragment_userlist_listview"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
     </ListView>
+
+    <android.support.design.widget.FloatingActionButton
+        app:fabSize="mini"
+        android:id="@+id/fragment_userlist_add_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/add"
+        app:elevation="4dp"
+        app:borderWidth="0dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="@dimen/fragment_userlist_action_button_range"
+        android:layout_marginEnd="@dimen/fragment_userlist_action_button_range"
+        android:layout_marginBottom="@dimen/fragment_userlist_action_button_range"/>
+    </RelativeLayout>
 </LinearLayout>

@@ -75,9 +75,16 @@ public class MainActivity extends AppCompatActivity implements
 
 	@Override
 	public void onUserItemClicked(long id) {
-		Bundle bundle = new Bundle();
-		bundle.putLong(ChatActivity.EXTRA_CHAT_ID, id);
-		startActivity(new Intent(this, ChatActivity.class), bundle);
+		Intent intent	= new Intent(this, ChatActivity.class);
+		intent.putExtra(ChatActivity.EXTRA_CHAT_ID, id);
+		startActivity(intent);
+	}
+
+	@Override
+	public void deleteUserFromRoster(long userId) {
+		if(mIsBound){
+			mService.deleteUserFromRoster(userId);
+		}
 	}
 
 	@Override

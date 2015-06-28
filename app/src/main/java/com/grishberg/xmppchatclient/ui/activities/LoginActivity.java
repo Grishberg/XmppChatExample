@@ -144,27 +144,45 @@ implements View.OnClickListener{
 			if(!intent.getAction().equals(ApiService.ACTION_ON_CONNECTED_RESULT)){
 				return;
 			}
-			int connectionStatus = intent.getIntExtra(ApiService.EXTRA_CONNECTION_STATUS, -1);
-			switch (connectionStatus){
-				case ApiService.CONNECTION_STATUS_OK:
-					onFinish();
-					// close activity
-					break;
-				case ApiService.CONNECTION_STATUS_ERROR_CONNECTION:
-					showMessage(getString(R.string.error_connection_problem));
-					enableFields();
-					break;
-				case ApiService.CONNECTION_STATUS_BAD_PASSWORD:
-					showMessage(getString(R.string.error_invalid_login));
-					enableFields();
-					break;
-				case ApiService.CONNECTION_STATUS_BAD_SERVER:
-					showMessage(getString(R.string.error_incorrect_server));
-					enableFields();
-					break;
-			}
+			final int connectionStatus = intent.getIntExtra(ApiService.EXTRA_CONNECTION_STATUS, -1);
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					onProcessLoginRequest(connectionStatus);
+				}
+			});
+
+
 		}
 	};
+	private void onProcessLoginRequest(int connectionStatus){
+		switch (connectionStatus){
+			case ApiService.CONNECTION_STATUS_OK:
+				onFinish();
+				// close activity
+				break;
+			case ApiService.CONNECTION_STATUS_ERROR_CONNECTION:
+				showMessage(getString(R.string.error_connection_problem));
+				enableFields();
+				break;
+			case ApiService.CONNECTION_STATUS_BAD_PASSWORD:
+				showMessage(getString(R.string.error_invalid_login));
+				enableFields();
+				break;
+			case ApiService.CONNECTION_STATUS_BAD_SERVER:
+				showMessage(getString(R.string.error_incorrect_server));
+				enableFields();
+				break;
+			case ApiService.CONNECTION_STATUS_ERROR_NORESPONSE:
+				showMessage(getString(R.string.error_not_response));
+				enableFields();
+				break;
+			default:
+				showMessage(getString(R.string.error_unknown));
+				enableFields();
+			break;
+		}
+	}
 
 	private void onFinish(){
 		// store login

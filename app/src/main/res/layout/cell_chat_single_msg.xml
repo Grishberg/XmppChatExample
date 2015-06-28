@@ -1,22 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="fill_parent"
-              android:layout_height="wrap_content" >
+              android:layout_height="wrap_content" 
+              android:orientation="horizontal"
+    >
+    <!-- left tab -->
+    <LinearLayout
+        android:id="@+id/cell_chat_lefttab"
+        android:layout_width="@dimen/cell_message_tab_width"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/cell_chat_message_container"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content" >
-<!--             android:background="@drawable/bubble_a" -->
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bubble_a"
+        android:layout_weight="1"
+        >
+
+        <!-- message date -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <!-- From -->
+            <TextView
+                android:id="@+id/cell_chat_from"
+                android:text="user@example.com"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:textColor="@color/secondary_text"
+                android:layout_marginLeft="2dp"
+                android:layout_marginRight="2dp"
+                />
+            <!-- date -->
+            <TextView
+                android:id="@+id/cell_chat_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="14:00:00 14.03.2015"
+                android:textColor="@color/secondary_text"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"/>
+
+            <ImageView
+                android:id="@+id/cell_chat_statusicon"
+                android:layout_width="@dimen/fragment_chat_statusicon_width"
+                android:layout_height="@dimen/fragment_chat_statusicon_height"/>
+        </LinearLayout>
+
+
+        <!-- message text -->
         <TextView
             android:id="@+id/cell_chat_message_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_gravity="left"
             android:layout_margin="5dip"
-            android:paddingLeft="10dip"
             android:text="Hello bubbles!"
-            android:textColor="@color/primary_light" />
+            android:textColor="@color/primary_text" />
+
     </LinearLayout>
 
+    <!-- right tab -->
+    <LinearLayout
+        android:id="@+id/cell_chat_righttab"
+        android:layout_width="@dimen/cell_message_tab_width"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+    </LinearLayout>
 </LinearLayout>

@@ -14,16 +14,15 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
+import android.support.v4.widget.CursorAdapter;
+import android.support.v4.widget.SimpleCursorAdapter;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.data.db.SqlQueryBuilderHelper;
-import com.grishberg.xmppchatclient.data.db.containers.ChatContainer;
-import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
-import com.grishberg.xmppchatclient.data.db.containers.User;
+import com.grishberg.xmppchatclient.ui.adapters.CustomMessageCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
 
@@ -42,7 +41,7 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	private ListView 			mListView;
 	private EditText 			mChatText;
 	private Button				mSendButton;
-	private SimpleCursorAdapter mListViewCursorAdapter;
+	private CursorAdapter 		mListViewCursorAdapter;
 
 	private String		mMessagesSortOrder;
 	private String		mMessagesFilterSelection;
@@ -69,6 +68,7 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 			mUserId = getArguments().getLong(ARG_USER_ID);
 			if(mUserId > 0){
 				SqlQueryBuilderHelper helper	= new SqlQueryBuilderHelper();
+				helper.makeMessageHistoryQuery(mUserId);
 				mMessagesFilterSelection 		= helper.getSelection();
 				mMessagesFilterSelectionArgs	= helper.getSelectionArgs();
 				mMessagesSortOrder				= helper.getSortOrder();
@@ -109,8 +109,8 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 		// Fields on the UI to which we map
 		int[] to = new int[] { R.id.cell_chat_message_text};
 
-		mListViewCursorAdapter = new SimpleCursorAdapter(getActivity(), R.layout.cell_chat_single_msg
-				, null, from, to, 0);
+		//mListViewCursorAdapter = new SimpleCursorAdapter(getActivity(),R.layout.cell_chat_single_msg, null, from,to,0);
+		mListViewCursorAdapter = new CustomMessageCursorAdapter(getActivity(), null);
 		mListView.setAdapter(mListViewCursorAdapter);
 		getLoaderManager().initLoader(MESSAGES_LOADER, null, this);
 
@@ -134,9 +134,11 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 			case MESSAGES_LOADER:
 
 				// Returns a new CursorLoader
+
 				return new CursorLoader(
 						getActivity(),   // Parent activity context
 						AppContentProvider.CONTENT_URI_MESSAGES, // Table to query
+						//AppContentProvider.CONTENT_URI_MESSAGES_WITH_JID, // Table to query
 						null, 					// Projection to return
 						mMessagesFilterSelection,
 						mMessagesFilterSelectionArgs,

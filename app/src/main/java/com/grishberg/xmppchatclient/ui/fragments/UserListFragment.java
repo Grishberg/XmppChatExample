@@ -1,6 +1,7 @@
 package com.grishberg.xmppchatclient.ui.fragments;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,7 +10,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -19,6 +24,7 @@ import android.widget.SimpleCursorAdapter;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
+import com.grishberg.xmppchatclient.ui.activities.FindUserActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithUserListFragment;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractionUserListWithActivity;
 
@@ -30,6 +36,7 @@ public class UserListFragment extends Fragment implements
 	private IInteractionUserListWithActivity mListener;
 	private ListView 				mListView;
 	private SimpleCursorAdapter 	mListViewCursorAdapter;
+	private
 
 	// DB cursor settings
 	String[] 						mUsersProjection;
@@ -70,11 +77,22 @@ public class UserListFragment extends Fragment implements
 				onListViewItemClicked(id);
 			}
 		});
+		registerForContextMenu(mListView);
+
 
 		mUsersProjection 			= null;
 		mUsersFilterSelection		= null;
 		mUsersFilterSelectionArgs	= null;
 		mUsersSortOrder				= DbHelper.USERS_JID + " ASC ";
+
+		// button add
+		View addUserButton = view.findViewById(R.id.fragment_userlist_add_button);
+		addUserButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				onAddNewUser();
+			}
+		});
 
 		fillData();
 		return view;
@@ -99,6 +117,9 @@ public class UserListFragment extends Fragment implements
 		mListener.onUserItemClicked(id);
 	}
 
+	private void onAddNewUser(){
+		startActivity(new Intent(getActivity(), FindUserActivity.class) );
+	}
 
 	//------------- Loader -------------------------------
 	@Override
@@ -156,5 +177,30 @@ public class UserListFragment extends Fragment implements
 		mListener.onUnregister(this);
 		mListener = null;
 	}
+//---------- menu --------
+//------------------- context menu ----------------------
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+		if (v.getId() == R.id.fragment_userlist_listview) {
+			MenuInflater inflater = getActivity().getMenuInflater();
+			inflater.inflate(R.menu.menu_main, menu);
 
+		}
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+			case R.id.action_delete_user:
+				AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item
+						.getMenuInfo();
+				mListener.deleteUserFromRoster(info.id);
+				return true;
+
+			default:
+				return super.onContextItemSelected(item);
+		}
+	}
+	//--------------------------------------------------
 }
