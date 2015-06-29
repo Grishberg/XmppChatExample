@@ -68,4 +68,32 @@ public class User {
 				c.getInt(onlineStatusColId)
 		);
 	}
+
+	public long getId() {
+		return id;
+	}
+
+	public long getGroupId() {
+		return groupId;
+	}
+
+	public long getMultiuserId() {
+		return multiuserId;
+	}
+
+	public String getLogin() {
+		return login;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public boolean isAuthorized() {
+		return authorized;
+	}
+
+	public int getOnlineStatus() {
+		return onlineStatus;
+	}
 }

@@ -7,7 +7,7 @@ import android.net.Uri;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
-import com.grishberg.xmppchatclient.framework.Constans;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 
 import java.util.Date;
 
@@ -61,15 +61,23 @@ public class QueryHelper {
 
 	public static void deleteUser(long userId){
 		AppController.getAppContext().getContentResolver()
-				.delete(AppContentProvider.getUsersUri(userId),null,null);
+				.delete(AppContentProvider.getUsersUri(userId), null, null);
 	}
 
 	public static void setOfflineStatus(){
 		ContentValues values = new ContentValues();
-		values.put(DbHelper.USERS_ONLINE_STATUS, Constans.USER_STATUS_OFFLINE);
+		values.put(DbHelper.USERS_ONLINE_STATUS, ChatConstants.USER_STATUS_AWAY);
 		AppController.getAppContext().getContentResolver()
 				.update(AppContentProvider.CONTENT_URI_USERS,values,null,null);
 	}
+
+	public static void setOnlineStatus(long userId, int status){
+		ContentValues values = new ContentValues();
+		values.put(DbHelper.USERS_ONLINE_STATUS, status);
+		AppController.getAppContext().getContentResolver()
+				.update(AppContentProvider.getUsersUri(userId), values, null, null);
+	}
+
 
 	public static void storeMessage(long userId, long chatId, Date date, String body, String subject){
 		MessageContainer messageContainer = new MessageContainer(userId,chatId

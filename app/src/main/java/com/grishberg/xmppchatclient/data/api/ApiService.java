@@ -17,6 +17,7 @@ import com.grishberg.xmppchatclient.data.db.QueryHelper;
 import com.grishberg.xmppchatclient.data.db.containers.GroupContainer;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
 import com.grishberg.xmppchatclient.data.db.containers.User;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 import com.grishberg.xmppchatclient.framework.Utils;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
@@ -176,7 +177,6 @@ public class ApiService extends Service implements
 			public void rosterEntires(Collection<RosterEntry> rosterEntries) {
 				for (RosterEntry user : rosterEntries) {
 					long groupId	= 0;
-					Presence presence = mRoster.getPresence(user.getUser());
 					for(RosterGroup group: user.getGroups()){
 						// add group to DB if not exists
 						GroupContainer groupContainer = new GroupContainer(group.getName());
@@ -196,12 +196,58 @@ public class ApiService extends Service implements
 					long userId = Long.valueOf( userUri.getLastPathSegment());
 					mUserList.put(userId, user);
 
+					Presence presence 	= mRoster.getPresence(user.getUser());
+					processPresence(userId, presence);
+
+
 					Log.d(TAG, "	roster user " + user.getUser());
 				}
 			}
 		};
 		mRoster.getEntriesAndAddListener(this, rosterEntriesInterface);
 
+	}
+
+	private int processPresence(long userId, Presence presence){
+		int presenseDbCode = 0;
+		Presence.Type type 	= presence.getType();
+		Presence.Mode mode	= presence.getMode();
+		switch (type){
+			case available:
+				presenseDbCode	= ChatConstants.USER_STATUS_AVAILIBLE;
+				break;
+			case unavailable:
+				presenseDbCode	= ChatConstants.USER_STATUS_UNAVAILIBLE;
+				break;
+			case subscribe:
+				break;
+			case unsubscribe:
+				break;
+			case unsubscribed:
+				break;
+
+		}
+
+		switch (mode){
+			case available:
+//				presenseDbCode	= ChatConstants.USER_STATUS_AVAILIBLE;
+				break;
+			case chat:
+//				presenseDbCode	= ChatConstants.USER_STATUS_CHAT;
+				break;
+			case away:
+//				presenseDbCode	= ChatConstants.USER_STATUS_AWAY;
+				break;
+			case xa:
+//				presenseDbCode	= ChatConstants.USER_STATUS_XA;
+				break;
+			case dnd:
+//				presenseDbCode	= ChatConstants.USER_STATUS_DND;
+				break;
+
+		}
+		QueryHelper.setOnlineStatus(userId, presenseDbCode);
+		return presenseDbCode;
 	}
 
 	/**
@@ -372,8 +418,14 @@ public class ApiService extends Service implements
 	}
 
 	@Override
-	public void presenceChanged(Presence presence) {
-		Log.d(TAG,"on presence change");
+	public void presenceChanged(final Presence presence) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				doChangePresence(presence);
+			}
+		}).start();
+		Log.d(TAG, "on presence change");
 
 	}
 	public void addUser(String jid, String name){
@@ -389,6 +441,18 @@ public class ApiService extends Service implements
 		}
 	}
 	//------------------- end roster events --------------------
+
+	/**
+	 * change user status in thread
+	 * @param presence
+	 */
+	private void doChangePresence(Presence presence){
+
+		String jid	= Utils.extractJid(presence.getFrom());
+		long userId	= QueryHelper.getUserByJid( jid );
+		processPresence(userId, presence);
+
+	}
 
 	public boolean isConnected() {
 		return mIsConnected;

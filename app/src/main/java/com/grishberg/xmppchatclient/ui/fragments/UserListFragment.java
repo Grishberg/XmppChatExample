@@ -26,6 +26,7 @@ import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.ui.activities.FindUserActivity;
+import com.grishberg.xmppchatclient.ui.adapters.CustomUserCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithUserListFragment;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractionUserListWithActivity;
 
@@ -35,15 +36,15 @@ public class UserListFragment extends Fragment implements
 
 	public static final int USERLIST_LOADER = 2;
 	private IInteractionUserListWithActivity mListener;
-	private ListView 				mListView;
-	private SimpleCursorAdapter 	mListViewCursorAdapter;
+	private ListView 		mListView;
+	private CursorAdapter 	mListViewCursorAdapter;
 	private
 
 	// DB cursor settings
-	String[] 						mUsersProjection;
-	private String 					mUsersFilterSelection;
-	private String[]				mUsersFilterSelectionArgs;
-	private String					mUsersSortOrder;
+	String[] 				mUsersProjection;
+	private String 			mUsersFilterSelection;
+	private String[]		mUsersFilterSelectionArgs;
+	private String			mUsersSortOrder;
 
 
 	public static UserListFragment newInstance() {
@@ -84,7 +85,7 @@ public class UserListFragment extends Fragment implements
 		mUsersProjection 			= null;
 		mUsersFilterSelection		= null;
 		mUsersFilterSelectionArgs	= null;
-		mUsersSortOrder				= DbHelper.USERS_JID + " ASC ";
+		mUsersSortOrder				= DbHelper.USERS_ONLINE_STATUS+" ASC ," + DbHelper.USERS_JID + " ASC ";
 
 		// button add
 		View addUserButton = view.findViewById(R.id.fragment_userlist_add_button);
@@ -107,8 +108,7 @@ public class UserListFragment extends Fragment implements
 		// Fields on the UI to which we map
 		int[] to = new int[] { R.id.cell_userlist_username };
 
-		mListViewCursorAdapter = new SimpleCursorAdapter(getActivity(), R.layout.cell_userlist_user
-				, null, from, to, 0);
+		mListViewCursorAdapter = new CustomUserCursorAdapter(getActivity(), null, 0);
 		mListView.setAdapter(mListViewCursorAdapter);
 		getLoaderManager().initLoader(USERLIST_LOADER, null, this);
 
