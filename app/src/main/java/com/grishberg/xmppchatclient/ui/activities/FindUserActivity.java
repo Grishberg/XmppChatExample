@@ -37,10 +37,10 @@ public class FindUserActivity extends AppCompatActivity
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_find_user);
-		mAddUserButton	= (Button) findViewById(R.id.login_sign_in_button);
+		mAddUserButton	= (Button) findViewById(R.id.activity_new_user_apply_button);
 		mAddUserButton.setOnClickListener(this);
 
-		mLoginEditText		= (EditText) findViewById(R.id.login_form_jid);
+		mLoginEditText		= (EditText) findViewById(R.id.activity_new_user_jid);
 		mProgress			= (ProgressBar) findViewById(R.id.login_progress);
 	}
 
@@ -66,7 +66,7 @@ public class FindUserActivity extends AppCompatActivity
 			// parse login and server
 			mProgress.setVisibility(View.VISIBLE);
 			if(mIsBound) {
-				mService.addUser(mLoginEditText.getText().toString(), null);
+				mService.addUser(mLoginEditText.getText().toString(), null, null);
 			}
 		}
 	}
@@ -88,18 +88,18 @@ public class FindUserActivity extends AppCompatActivity
 	@Override
 	protected void onPause() {
 		// Unregister since the activity is paused.
-		LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+		LocalBroadcastManager.getInstance(this).unregisterReceiver(mAddUserReceiver);
 		super.onPause();
 	}
 
 	@Override
 	protected void onResume() {
 		LocalBroadcastManager.getInstance(this).registerReceiver(
-				mMessageReceiver, new IntentFilter(ApiService.ACTION_ON_ROSTER_ADD_USER_RESULT));
+				mAddUserReceiver, new IntentFilter(ApiService.ACTION_ON_ROSTER_ADD_USER_RESULT));
 		super.onResume();
 	}
 
-	private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+	private BroadcastReceiver mAddUserReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			mProgress.setVisibility(View.GONE);

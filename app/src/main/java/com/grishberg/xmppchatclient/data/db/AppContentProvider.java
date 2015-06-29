@@ -238,7 +238,7 @@ public class AppContentProvider  extends ContentProvider {
 	 * @param uriId uri index
 	 * @param values values
 	 * @param column column for condition
-	 * @return
+	 * @return id
 	 * @throws SQLiteConstraintException
 	 */
 	private long insertOrUpdateById(SQLiteDatabase db,Uri uri, int uriId,

@@ -14,6 +14,7 @@ import android.widget.TextView;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -40,7 +41,7 @@ public class CustomMessageCursorAdapter extends CursorAdapter {
 		DateFormat df = new SimpleDateFormat("[dd.MM.yyyy HH:mm:ss]");
 		String createdAtDate = df.format(messageContainer.getCreated());
 
-		if(messageContainer.getUserId() > 1){
+		if(messageContainer.getUserId() != ChatConstants.CURRENT_LOCAL_USER_ID){
 			// other's messages
 			holder.chatContainer.setBackgroundResource(R.drawable.bubble_b);
 			holder.chatContainer.setGravity( Gravity.LEFT);

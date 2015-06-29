@@ -2,8 +2,21 @@
       xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools"
       tools:context=".MainActivity">
-      <item android:id="@+id/action_delete_user"
-            android:title="@string/action_delete_user"
+
+    <item android:id="@+id/action_online"
+          android:title="@string/action_online"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
+
+    <item android:id="@+id/action_offline"
+          android:title="@string/action_offline"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
+
+      <item android:id="@+id/action_new_muc"
+            android:title="@string/action_new_muc"
             android:orderInCategory="100"
             app:showAsAction="never"/>
+
 </menu>
+

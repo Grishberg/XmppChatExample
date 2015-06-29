@@ -12,7 +12,7 @@
 
     <!-- Login progress -->
     <ProgressBar
-        android:id="@+id/login_progress"
+        android:id="@+id/activity_new_muc_progress"
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -32,26 +32,37 @@
             android:orientation="vertical">
 
             <EditText
-                android:id="@+id/activity_new_user_jid"
+                android:id="@+id/activity_new_muc_host"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/prompt_jid"
+                android:hint="@string/prompt_muc_host"
                 android:maxLines="1"
                 android:singleLine="true"/>
 
             <EditText
-                android:id="@+id/activity_new_user_name"
+                android:id="@+id/activity_new_muc_room"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/prompt_name"
+                android:hint="@string/prompt_room"
                 android:maxLines="1"
                 android:singleLine="true"/>
 
             <EditText
-                android:id="@+id/activity_new_user_group"
+                android:id="@+id/activity_new_muc_nickname"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/prompt_group"
+                android:hint="@string/prompt_nickname"
+                android:maxLines="1"
+                android:singleLine="true"/>
+
+            <EditText
+                android:id="@+id/activity_new_muc_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/prompt_password"
+                android:imeOptions="actionUnspecified"
+
+                android:inputType="textPassword"
                 android:maxLines="1"
                 android:singleLine="true"/>
         </LinearLayout>
@@ -60,7 +71,7 @@
             android:id="@+id/activity_new_user_apply_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/finduser_action_add"
+            android:text="@string/activity_new_muc_action_add"
             android:layout_marginBottom="32dp"
             android:background="@color/primary"
             />

@@ -43,22 +43,26 @@
             android:name=".ui.activities.FindUserActivity"
             android:label="@string/title_activity_find_user" >
         </activity>
-
         <activity
             android:name=".ui.activities.ChatActivity"
             android:label="@string/title_activity_chat" >
         </activity>
 
-        <!--             android:windowSoftInputMode="adjustResize|stateHidden" > -->
+        <!-- android:windowSoftInputMode="adjustResize|stateHidden" > -->
         <activity
             android:name=".ui.activities.LoginActivity"
             android:label="@string/title_activity_login" >
         </activity>
 
         <provider
+            android:name=".data.db.AppContentProvider"
             android:authorities="com.grishberg.xmppchatclient.content_provider"
-            android:name="com.grishberg.xmppchatclient.data.db.AppContentProvider"
-            android:exported="false"/>
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.activities.NewMucActivity"
+            android:label="@string/title_activity_new_muc" >
+        </activity>
     </application>
 
 </manifest>

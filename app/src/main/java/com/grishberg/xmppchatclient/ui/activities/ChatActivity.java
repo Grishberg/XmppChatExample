@@ -20,7 +20,9 @@ import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
 
 public class ChatActivity extends AppCompatActivity implements IInteractChatWithActivity{
 
-	public static final String EXTRA_CHAT_ID = "extraChatId";
+	public static final String EXTRA_CHAT_ID 	= "extraChatId";
+	public static final String EXTRA_CHAT_NAME 	= "extraChatName";
+
 	private IInteractWithChatFragment mChatFragment;
 	private ApiService	mService;
 	private boolean 	mIsBound;
@@ -31,6 +33,9 @@ public class ChatActivity extends AppCompatActivity implements IInteractChatWith
 		setContentView(R.layout.activity_chat);
 		Intent intent	= getIntent();
 		long chatId		= intent.getLongExtra(EXTRA_CHAT_ID, 0);
+		String chatName	= intent.getStringExtra(EXTRA_CHAT_NAME);
+
+		setTitle(chatName);
 
 		if(savedInstanceState == null) {
 			getSupportFragmentManager().beginTransaction()

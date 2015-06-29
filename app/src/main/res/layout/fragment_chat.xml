@@ -11,6 +11,8 @@
         android:layout_marginBottom="80dp"
         android:stackFromBottom="true"
         android:transcriptMode="normal"
+        android:divider="@null"
+        android:dividerHeight="0dp"
         >
     </ListView>
 

@@ -1,5 +1,6 @@
 package com.grishberg.xmppchatclient.data.db;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -11,7 +12,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DbHelper extends SQLiteOpenHelper {
 
 	private static final String DB_NAME 			= "chat.db";
-	private static final int 	DB_VERSION 			= 3;
+	private static final int 	DB_VERSION 			= 1;
 
 	public static final String COLUMN_ID 			= "_id";
 
@@ -52,7 +53,7 @@ public class DbHelper extends SQLiteOpenHelper {
 			"CREATE TABLE " 	+ TABLE_USERS + "(" +
 			COLUMN_ID			+ " integer primary key autoincrement," +
 			USERS_GROUP_ID		+ " integer," +
-			USERS_JID + " text UNIQUE NOT NULL," +
+			USERS_JID 			+ " text UNIQUE NOT NULL," +
 			USERS_NAME			+ " text," +
 			USERS_MULTIUSER_ID	+ " integer,"+
 			USERS_ONLINE_STATUS	+ " integer,"+
@@ -91,6 +92,10 @@ public class DbHelper extends SQLiteOpenHelper {
 		for (final String table : CREATES) {
 			db.execSQL(table);
 		}
+		ContentValues values = new ContentValues();
+		values.put(USERS_JID,"CurrentLocalUser");
+		db.insert(TABLE_USERS, null, values);
+
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 
@@ -39,6 +40,9 @@ import org.jivesoftware.smack.roster.RosterListener;
 import org.jivesoftware.smack.roster.packet.RosterPacket;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
+import org.jivesoftware.smackx.muc.InvitationListener;
+import org.jivesoftware.smackx.muc.MultiUserChat;
+import org.jivesoftware.smackx.muc.MultiUserChatManager;
 
 import java.util.Collection;
 import java.util.Date;
@@ -48,16 +52,24 @@ import java.util.Map;
 
 
 public class ApiService extends Service implements
-		ChatManagerListener
-		, MessageListener
-		, ChatMessageListener
-		, RosterListener
-		, ConnectionListener{
+	ConnectionListener {
 	private static final String TAG = "XmppChat.ApiService";
-	public static final String ACTION_ON_ROSTER_ADD_USER_RESULT 	= "onRosterAddUser";
 	public static final String ACTION_ON_CONNECTED_RESULT 			= "onConnectedResult";
 
 	public static final String ACTION_ON_CONNECTION_STATUS_CHANGED 	= "onConnectionChanged";
+	public static final String ACTION_ON_NEW_MUC_RESULT 			= "onNewMucResult";
+
+	//roster
+	public static final String ACTION_ON_ROSTER_ADD_USER_RESULT 	= "onRosterAddUser";
+	public static final int ROSTER_ADD_USER_STATUS_OK 				= 6;
+
+	//muc
+	public static final String ACTION_ON_MUC_JOIN_RESULT 			= "onMucJoin";
+	public static final int MUC_JOIN_STATUS_OK 						= 1;
+	public static final String EXTRA_JOIN_MUC_STATUS 				= "joinMucStatus";
+	public static final int MUC_JOIN_STATUS_NOT_RESPONSE 			= 2;
+	public static final int MUC_JOIN_STATUS_OTHER_ERROR				= 10;
+
 	public static final String EXTRA_CONNECTION_STATUS 				= "connectionStatus";
 	public static final String EXTRA_ADD_USER_STATUS 				= "addUserStatus";
 
@@ -67,27 +79,28 @@ public class ApiService extends Service implements
 	public static final int CONNECTION_STATUS_ERROR_CONNECTION	= 3;
 	public static final int CONNECTION_STATUS_ERROR_NORESPONSE	= 4;
 	public static final int CONNECTION_STATUS_ERROR_UNKNOWN		= 5;
-	public static final int ROSTER_ADD_USER_STATUS_OK 			= 6;
 
-	private ChatManager 		mChatManager;
+
 	private Handler 			mConnectionHandler;
-	private Roster 				mRoster;
 	private String				mLogin;
 	private String				mPassword;
 	private String				mServer;
 	private Thread				mConnectionThread;
 	private int 				mStartMode = START_REDELIVER_INTENT;
-	private Map<Long, Chat> 	mPrivateChats;
-	private Map<Long, RosterEntry>	mUserList;
+
+
 
 	private volatile AbstractXMPPConnection	mConnection;
-	private volatile boolean				mIsConnected;
+	private XmppMessageManager 				mMessageManager;
+	private XmppRosterManager				mRosterManager;
+	private XmppMucManager					mMucManager;
+
+
+
 	private MyBinder binder = new MyBinder();
 
 	public ApiService() {
 		mConnectionHandler	= new Handler();
-		mPrivateChats		= new HashMap<>();
-		mUserList			= new HashMap<>();
 	}
 
 	@Override
@@ -96,18 +109,29 @@ public class ApiService extends Service implements
 		return mStartMode;
 	}
 
+	public void connect(){
+		if(!TextUtils.isEmpty(mLogin)){
+			connect(mLogin, mPassword, mServer);
+		}
+	}
 
 	public void connect(String login, String password, String server ) {
 		mLogin		= login;
 		mPassword	= password;
 		mServer		= server;
-		mConnectionThread	= new Thread(new Runnable() {
-			@Override
-			public void run() {
-				doConnect();
-			}
-		});
-		mConnectionThread.start();
+		if(mConnection != null && mConnection.isAuthenticated()){
+			// not need connect
+			sendOnConnectedMessage(CONNECTION_STATUS_OK);
+			Log.d(TAG,"not need connect, connected");
+		} else {
+			mConnectionThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					doConnect();
+				}
+			});
+			mConnectionThread.start();
+		}
 	}
 
 	public void disconnect() {
@@ -132,25 +156,16 @@ public class ApiService extends Service implements
 			// Log into the server
 			mConnection.login();
 
-			// setup chat manager
-			mChatManager	= ChatManager.getInstanceFor(mConnection);
-			if(mChatManager != null){
-				mChatManager.addChatListener(this);
-			}
-
-			// setup roster
-			mRoster			= Roster.getInstanceFor(mConnection);
-			if (!mRoster.isLoaded())
-				mRoster.reloadAndWait();
-			getGroupsAndUsers();
-
+			mRosterManager 	= new XmppRosterManager(this, mConnection);
+			mMessageManager	= new XmppMessageManager(this, mConnection);
+			mMucManager		= new XmppMucManager(this, mConnection);
 
 			// Create a new presence. Pass in false to indicate we're unavailable._
 			Presence presence = new Presence(Presence.Type.available);
 			presence.setStatus("Working");
 			// Send the packet (assume we have an XMPPConnection instance called "con").
 			mConnection.sendStanza(presence);
-
+			QueryHelper.updateUser(ChatConstants.CURRENT_LOCAL_USER_ID, mLogin+"@"+mServer, mLogin);
 			sendOnConnectedMessage(CONNECTION_STATUS_OK);
 			Log.d(TAG,"on connected");
 		}
@@ -166,197 +181,44 @@ public class ApiService extends Service implements
 		}
 	}
 
-	/**
-	 * store groups and users to DB
-	 */
-	private void getGroupsAndUsers() {
 
-		// get groups
-		RosterEntries rosterEntriesInterface = new RosterEntries() {
-			@Override
-			public void rosterEntires(Collection<RosterEntry> rosterEntries) {
-				for (RosterEntry user : rosterEntries) {
-					long groupId	= 0;
-					for(RosterGroup group: user.getGroups()){
-						// add group to DB if not exists
-						GroupContainer groupContainer = new GroupContainer(group.getName());
-						Uri groupUri	= AppController.getAppContext().getContentResolver()
-								.insert(AppContentProvider.CONTENT_URI_GROUPS,groupContainer.buildContentValues());
-						groupId = Long.valueOf(groupUri.getLastPathSegment());
-						Log.d(TAG, "roster group "+group.getName());
-
-					}
-					String jid	= Utils.extractJid(user.getUser());
-					String name	= user.getName();
-					User userContainer = new User(jid, name, groupId, 0, false, 0);
-
-					Uri userUri = AppController.getAppContext().getContentResolver()
-							.insert(AppContentProvider.CONTENT_URI_USERS
-									,userContainer.buildContentValues() );
-					long userId = Long.valueOf( userUri.getLastPathSegment());
-					mUserList.put(userId, user);
-
-					Presence presence 	= mRoster.getPresence(user.getUser());
-					processPresence(userId, presence);
-
-
-					Log.d(TAG, "	roster user " + user.getUser());
-				}
-			}
-		};
-		mRoster.getEntriesAndAddListener(this, rosterEntriesInterface);
-
+	public void sendMessage(long userId, String messageText){
+		if(mMessageManager != null){
+			mMessageManager.sendMessage(userId, messageText);
+		}
 	}
 
-	private int processPresence(long userId, Presence presence){
-		int presenseDbCode = 0;
-		Presence.Type type 	= presence.getType();
-		Presence.Mode mode	= presence.getMode();
-		switch (type){
-			case available:
-				presenseDbCode	= ChatConstants.USER_STATUS_AVAILIBLE;
-				break;
-			case unavailable:
-				presenseDbCode	= ChatConstants.USER_STATUS_UNAVAILIBLE;
-				break;
-			case subscribe:
-				break;
-			case unsubscribe:
-				break;
-			case unsubscribed:
-				break;
-
+ 	public void addUser(String jid, String name, String group){
+		if(mRosterManager!= null){
+			mRosterManager.addUser( jid, name, group);
 		}
+	}
 
-		switch (mode){
-			case available:
-//				presenseDbCode	= ChatConstants.USER_STATUS_AVAILIBLE;
-				break;
-			case chat:
-//				presenseDbCode	= ChatConstants.USER_STATUS_CHAT;
-				break;
-			case away:
-//				presenseDbCode	= ChatConstants.USER_STATUS_AWAY;
-				break;
-			case xa:
-//				presenseDbCode	= ChatConstants.USER_STATUS_XA;
-				break;
-			case dnd:
-//				presenseDbCode	= ChatConstants.USER_STATUS_DND;
-				break;
-
+	// delete user
+	public void deleteUserFromRoster(long userId){
+		if(mRosterManager != null){
+			mRosterManager.deleteUserFromRoster(userId);
 		}
-		QueryHelper.setOnlineStatus(userId, presenseDbCode);
-		return presenseDbCode;
+	}
+
+	// MUC
+	public void joinMuc( String host,  String room,  String nickname, String password){
+		if(mMucManager != null){
+			mMucManager.addJoinMuc(host,room, nickname, password);
+		}
 	}
 
 	/**
-	 * event when incoming chat
-	 * @param chat
-	 * @param createdLocally
+	 * need call when leave chat
 	 */
-	@Override
-	public void chatCreated(Chat chat, boolean createdLocally) {
-
-		Log.d(TAG, "on chat created");
-		String jid	= Utils.extractJid(chat.getParticipant() );
-		long userId	= QueryHelper.getUserByJid(jid);
-		mPrivateChats.put(userId, chat);
-		chat.addMessageListener(this);
-
-	}
-
-	/**
-	 * event when incoming message
-	 * @param message
-	 */
-	@Override
-	public void processMessage(Message message) {
-		//TODO: send to activity
-		Log.d(TAG, "on received message");
-	}
-
-
-	/**
-	 * event when icoming message from chat
-	 * @param chat
-	 * @param message
-	 */
-	@Override
-	public void processMessage(Chat chat, Message message) {
-		Log.d(TAG, "on message from chat");
-
-		ContentResolver contentResolver = AppController.getAppContext().getContentResolver();
-
-		// get user id
-		long userId = QueryHelper.getUserByJid(Utils.extractJid(chat.getParticipant()));
-
-		// store message to DB
-		MessageContainer messageContainer = new MessageContainer(userId,userId, new Date().getTime(),
-				true, true
-				, message.getBody()
-				, message.getSubject());
-
-		contentResolver.insert(AppContentProvider.CONTENT_URI_MESSAGES
-				, messageContainer.buildContentValues());
-
-		//TODO: remove
-		try {
-			chat.sendMessage( message.getBody() );
-		} catch (Exception e){
-
+	public void leaveMuc(){
+		if(mMucManager != null){
+			mMucManager.leaveMuc();
 		}
 	}
 
-	public void sendMessage(final long userId, final String messageText){
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				doSendMessage(userId, messageText);
-			}
-		}).start();
-	}
 
-	private void doSendMessage(long userId, String messageText){
-		if(mIsConnected){
-			Chat currentChat = mPrivateChats.get(userId);
-			if( currentChat == null){
-				String jid	= QueryHelper.getJidById( userId );
-				currentChat = mChatManager.createChat( jid );
-				mPrivateChats.put(userId, currentChat);
-			}
-			try {
-				currentChat.sendMessage(messageText);
-				QueryHelper.storeMessage(1, userId, new Date(), messageText, null);
-			} catch (Exception e){
-				e.printStackTrace();
-			}
-		}
-	}
 
-	public void deleteUserFromRoster(final long userId){
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				doDeleteUserFromRoster(userId);
-			}
-		}).start();
-	}
-
-	private void doDeleteUserFromRoster(long userId){
-		if(mIsConnected){
-			String jid = QueryHelper.getJidById(userId);
-			RosterEntry entry = mUserList.get(userId);
-			if(entry != null) {
-				try {
-					mRoster.removeEntry(entry);
-					QueryHelper.deleteUser(userId);
-				} catch (Exception e){
-
-				}
-			}
-		}
-	}
 	//----------- Connection listener ---------------
 	@Override
 	public void connected(XMPPConnection connection) {
@@ -365,97 +227,39 @@ public class ApiService extends Service implements
 
 	@Override
 	public void authenticated(XMPPConnection connection, boolean resumed) {
-		mIsConnected = true;
 		sendOnConnectionStatusChanged(CONNECTION_STATUS_OK);
 		Log.d(TAG, "authenticated resumed="+resumed);
 	}
 
 	@Override
 	public void connectionClosed() {
-		mIsConnected = false;
 		sendOnConnectionStatusChanged(CONNECTION_STATUS_ERROR_CONNECTION);
 
 	}
 
 	@Override
 	public void connectionClosedOnError(Exception e) {
-		mIsConnected = false;
 		//sendOnConnectionStatusChanged(CONNECTION_STATUS_ERROR_CONNECTION);
 		Log.d(TAG, "connectionClosedOnError err="+e.getMessage() );
 	}
 
 	@Override
 	public void reconnectionSuccessful() {
-		mIsConnected = true;
 		sendOnConnectionStatusChanged(CONNECTION_STATUS_OK);
 	}
 
 	@Override
 	public void reconnectingIn(int seconds) {
-		mIsConnected = false;
+		Log.d(TAG, "reconnectingIn sec="+seconds);
 	}
 
 	@Override
 	public void reconnectionFailed(Exception e) {
-		mIsConnected = false;
-	}
-
-	//------ Roster events ------------
-
-	@Override
-	public void entriesAdded(Collection<String> addresses) {
-		Log.d(TAG,"on entries added");
-	}
-
-	@Override
-	public void entriesUpdated(Collection<String> addresses) {
-		Log.d(TAG," on entries updated");
-	}
-
-	@Override
-	public void entriesDeleted(Collection<String> addresses) {
-		Log.d(TAG,"entries deleted");
-	}
-
-	@Override
-	public void presenceChanged(final Presence presence) {
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				doChangePresence(presence);
-			}
-		}).start();
-		Log.d(TAG, "on presence change");
-
-	}
-	public void addUser(String jid, String name){
-		//TODO: run in thread
-		if(mIsConnected){
-			try {
-
-				mRoster.createEntry(jid, name, null);
-				sendOnUserAddedToRoster(ROSTER_ADD_USER_STATUS_OK);
-			} catch (Exception e){
-				e.printStackTrace();
-			}
-		}
-	}
-	//------------------- end roster events --------------------
-
-	/**
-	 * change user status in thread
-	 * @param presence
-	 */
-	private void doChangePresence(Presence presence){
-
-		String jid	= Utils.extractJid(presence.getFrom());
-		long userId	= QueryHelper.getUserByJid( jid );
-		processPresence(userId, presence);
-
+		Log.d(TAG, "reconnectionFailed e="+e.getMessage());
 	}
 
 	public boolean isConnected() {
-		return mIsConnected;
+		return mConnection.isAuthenticated();
 	}
 
 	private void sendOnConnectionStatusChanged(int connectionStatus){
@@ -473,14 +277,6 @@ public class ApiService extends Service implements
 		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 	}
 
-	private void sendOnUserAddedToRoster(int msg){
-		Intent intent = new Intent(ACTION_ON_ROSTER_ADD_USER_RESULT);
-		// You can also include some extra data.
-		intent.putExtra(EXTRA_ADD_USER_STATUS, msg);
-		LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-	}
-
-
 	@Override
 	public IBinder onBind(Intent intent) {
 		return binder;
@@ -491,6 +287,19 @@ public class ApiService extends Service implements
 	public class MyBinder extends Binder{
 		public ApiService getService() {
 			return ApiService.this;
+		}
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+
+		if(mConnection != null && mConnection.isConnected()){
+			mConnection.disconnect();
+		}
+
+		if(mMucManager != null){
+			mMucManager.leaveMuc();
 		}
 	}
 }

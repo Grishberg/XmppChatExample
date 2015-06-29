@@ -27,6 +27,7 @@ implements View.OnClickListener{
 	public static final int RESULT_CODE_LOGINED 	= 1;
 	public static final int RESULT_CODE_NOT_LOGINED = 2;
 	public static final String RESULT_PARAM_NAME	= "extraName";
+	public static final String EXTRA_JID			= "extraJid";
 
 	private Button mSiginButton;
 	private EditText mLoginEditText;
@@ -155,6 +156,8 @@ implements View.OnClickListener{
 
 		}
 	};
+
+
 	private void onProcessLoginRequest(int connectionStatus){
 		switch (connectionStatus){
 			case ApiService.CONNECTION_STATUS_OK:
@@ -188,7 +191,10 @@ implements View.OnClickListener{
 		// store login
 		AppController.setUserSettings(mLogin, mPasswordEditText.getText().toString()
 				,mServer );
-		setResult(RESULT_OK);
+		Intent intent = new Intent();
+		intent.putExtra(EXTRA_JID, mLogin);
+
+		setResult(RESULT_OK, intent);
 		finish();
 	}
 
@@ -205,9 +211,10 @@ implements View.OnClickListener{
 
 	@Override
 	public void onBackPressed() {
-		if(mIsChangeProfile) {
-			super.onBackPressed();
-		}
+		super.onBackPressed();
+		Intent homeIntent = new Intent(this, MainActivity.class);
+		homeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		setResult(RESULT_CANCELED, homeIntent);
+		finish();
 	}
-
 }

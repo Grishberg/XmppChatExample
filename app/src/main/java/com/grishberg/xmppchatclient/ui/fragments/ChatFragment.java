@@ -19,6 +19,7 @@ import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.data.db.SqlQueryBuilderHelper;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 import com.grishberg.xmppchatclient.ui.adapters.CustomMessageCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
@@ -81,24 +82,15 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 		mSendButton	= (Button) view.findViewById(R.id.fragment_chat_buttonSend);
 		mSendButton.setOnClickListener(this);
 
-		mListView = (ListView) view.findViewById(R.id.fragment_chat_listview);
+		mListView 	= (ListView) view.findViewById(R.id.fragment_chat_listview);
+		mChatText	= (EditText) view.findViewById(R.id.fragment_chat_edittext);
 
-		mChatText		= (EditText) view.findViewById(R.id.fragment_chat_edittext);
-
-		mMessagesSortOrder	= DbHelper.MESSAGES_CREATED + " ASC ";
+		mMessagesSortOrder			= DbHelper.MESSAGES_CREATED + " ASC ";
 		fillData();
 		return view;
 	}
 
 	private void fillData() {
-		// Fields from the database (projection)
-		// Must include the _id column for the adapter to work
-		String[] from = new String[] {DbHelper.MESSAGES_BODY};
-
-		// Fields on the UI to which we map
-		int[] to = new int[] { R.id.cell_chat_message_text};
-
-		//mListViewCursorAdapter = new SimpleCursorAdapter(getActivity(),R.layout.cell_chat_single_msg, null, from,to,0);
 		mListViewCursorAdapter = new CustomMessageCursorAdapter(getActivity(), null);
 		mListView.setAdapter(mListViewCursorAdapter);
 		getLoaderManager().initLoader(MESSAGES_LOADER, null, this);

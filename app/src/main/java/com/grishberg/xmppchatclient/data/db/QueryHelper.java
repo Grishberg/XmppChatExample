@@ -58,6 +58,14 @@ public class QueryHelper {
 		}
 		return result;
 	}
+	public static void updateUser(long userId, String jid, String name){
+		ContentValues values = new ContentValues();
+		values.put(DbHelper.USERS_JID, jid);
+		values.put(DbHelper.USERS_NAME, name);
+
+		AppController.getAppContext().getContentResolver()
+				.update(AppContentProvider.getUsersUri(userId), values, null, null);
+	}
 
 	public static void deleteUser(long userId){
 		AppController.getAppContext().getContentResolver()

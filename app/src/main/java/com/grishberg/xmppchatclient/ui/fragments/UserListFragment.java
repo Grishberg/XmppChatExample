@@ -3,7 +3,6 @@ package com.grishberg.xmppchatclient.ui.fragments;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 
 import android.support.v4.app.Fragment;
@@ -13,18 +12,17 @@ import android.support.v4.content.Loader;
 import android.support.v4.widget.CursorAdapter;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
 
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 import com.grishberg.xmppchatclient.ui.activities.FindUserActivity;
 import com.grishberg.xmppchatclient.ui.adapters.CustomUserCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithUserListFragment;
@@ -83,9 +81,10 @@ public class UserListFragment extends Fragment implements
 
 
 		mUsersProjection 			= null;
-		mUsersFilterSelection		= null;
-		mUsersFilterSelectionArgs	= null;
-		mUsersSortOrder				= DbHelper.USERS_ONLINE_STATUS+" ASC ," + DbHelper.USERS_JID + " ASC ";
+		mUsersFilterSelection		= DbHelper.COLUMN_ID +" <> ?";
+		mUsersFilterSelectionArgs	= new String[] { ChatConstants.CURRENT_LOCAL_USER_ID.toString() };
+		mUsersSortOrder				= DbHelper.USERS_ONLINE_STATUS+" ASC ," +
+				DbHelper.USERS_JID + " ASC ";
 
 		// button add
 		View addUserButton = view.findViewById(R.id.fragment_userlist_add_button);
@@ -185,7 +184,7 @@ public class UserListFragment extends Fragment implements
 		super.onCreateContextMenu(menu, v, menuInfo);
 		if (v.getId() == R.id.fragment_userlist_listview) {
 			MenuInflater inflater = getActivity().getMenuInflater();
-			inflater.inflate(R.menu.menu_main, menu);
+			inflater.inflate(R.menu.menu_userlist, menu);
 
 		}
 	}

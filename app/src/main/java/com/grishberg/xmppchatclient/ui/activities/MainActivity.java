@@ -7,11 +7,9 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
 import com.grishberg.xmppchatclient.ui.fragments.UserListFragment;
@@ -25,9 +23,11 @@ public class MainActivity extends AppCompatActivity implements
 		IInteractionUserListWithActivity {
 
 	private static final int REQUEST_CODE_LOGIN = 0;
+	private static final int REQUEST_CODE_NEW_MUC = 1;
 	private ApiService	mService;
 	private boolean 	mIsBound;
 	private boolean 	mIsLogined;
+	private String		mCurrentLogin;
 	private IInteractWithUserListFragment mUserListFragment;
 
 	@Override
@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements
 
 	private void onLogined(){
 		// download Roster
+		setTitle(mCurrentLogin);
 	}
 
 	@Override
@@ -73,6 +74,10 @@ public class MainActivity extends AppCompatActivity implements
 		mUserListFragment	= null;
 	}
 
+	/**
+	 * event when user click on user's list
+	 * @param id
+	 */
 	@Override
 	public void onUserItemClicked(long id) {
 		Intent intent	= new Intent(this, ChatActivity.class);
@@ -80,6 +85,10 @@ public class MainActivity extends AppCompatActivity implements
 		startActivity(intent);
 	}
 
+	/**
+	 * delete jid from roster
+	 * @param userId
+	 */
 	@Override
 	public void deleteUserFromRoster(long userId) {
 		if(mIsBound){
@@ -87,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements
 		}
 	}
 
+	// binding/ unbinding to service
 	@Override
 	protected void onStart() {
 		super.onStart();
@@ -103,13 +113,14 @@ public class MainActivity extends AppCompatActivity implements
 		mIsBound = false;
 	}
 
-
+	// response from LoginActivity
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if(requestCode == REQUEST_CODE_LOGIN) {
 			if (resultCode == LoginActivity.RESULT_CODE_LOGINED) {
 				// we are logined
-				mIsLogined = true;
+				mIsLogined 		= true;
+				mCurrentLogin	= data.getStringExtra(LoginActivity.EXTRA_JID);
 				onLogined();
 			} else
 			{
@@ -117,7 +128,8 @@ public class MainActivity extends AppCompatActivity implements
 			}
 		}
 	}
-/*
+
+	//------ menu -----
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -127,22 +139,31 @@ public class MainActivity extends AppCompatActivity implements
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 
 		//noinspection SimplifiableIfStatement
-		if (id == R.id.action_connect) {
+		switch (id){
+			case R.id.action_online:
 			if(mIsBound){
-				mService.connect("rebbe2015","Qqwe!123","jabber.ru");
+				mService.connect();
 			}
 			return true;
-		}
 
+			case R.id.action_offline:
+				if(mIsBound){
+					mService.disconnect();
+				}
+				return true;
+
+			case R.id.action_new_muc:
+				startActivityForResult(new Intent(this, NewMucActivity.class), REQUEST_CODE_NEW_MUC);
+				return true;
+		}
 		return super.onOptionsItemSelected(item);
 	}
-*/
+	//-- end menu ----------------
+
+
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();

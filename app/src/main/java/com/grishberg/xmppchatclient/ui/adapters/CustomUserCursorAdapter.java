@@ -31,14 +31,20 @@ public class CustomUserCursorAdapter extends CursorAdapter {
 		ViewHolder holder 	= (ViewHolder) view.getTag();
 
 		User user	= User.fromCursor(cursor);
+		int position = cursor.getPosition();
 
 		switch (user.getOnlineStatus())
 		{
-			case ChatConstants.USER_STATUS_AWAY:
-				holder.statusImage.setBackgroundResource(R.drawable.jabber_offline);
+			case ChatConstants.USER_STATUS_UNAVAILIBLE:
+				holder.statusImage.setImageResource(R.drawable.jabber_offline);
 				break;
 			case ChatConstants.USER_STATUS_AVAILIBLE:
-				holder.statusImage.setBackgroundResource(R.drawable.jabber_online);
+				holder.statusImage.setImageResource(R.drawable.jabber_online);
+				break;
+			case ChatConstants.USER_STATUS_CHAT:
+				holder.statusImage.setImageResource(R.drawable.jabber_chat);
+				break;
+			default:
 				break;
 		}
 

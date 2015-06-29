@@ -4,6 +4,9 @@
     <!-- Strings related to login -->
     <string name="prompt_jid">login@example.com</string>
     <string name="prompt_password">Password</string>
+    <string name="prompt_group">New group</string>
+    <string name="prompt_name">nickname</string>
+
     <string name="action_sign_in_short">Sign in</string>
 
     <string name="error_invalid_jid">This JID is invalid</string>
