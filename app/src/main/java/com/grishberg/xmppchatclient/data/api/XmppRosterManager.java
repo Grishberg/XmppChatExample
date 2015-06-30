@@ -75,7 +75,7 @@ public class XmppRosterManager implements RosterListener {
 					}
 					String jid	= Utils.extractJid(user.getUser());
 					String name	= user.getName();
-					User userContainer = new User(jid, name, groupId, 0, false, 0);
+					User userContainer = new User(jid, name, groupId, false, 0, false);
 
 					Uri userUri = AppController.getAppContext().getContentResolver()
 							.insert(AppContentProvider.CONTENT_URI_USERS

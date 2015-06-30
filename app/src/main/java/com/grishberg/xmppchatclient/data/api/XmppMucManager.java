@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 
 import com.grishberg.xmppchatclient.AppController;
+import com.grishberg.xmppchatclient.data.db.AppContentProvider;
+import com.grishberg.xmppchatclient.data.db.QueryHelper;
+import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
+import com.grishberg.xmppchatclient.framework.Utils;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
 import org.jivesoftware.smack.MessageListener;
@@ -19,10 +23,13 @@ import org.jivesoftware.smackx.muc.MultiUserChatManager;
 import org.jivesoftware.smackx.xdata.Form;
 import org.jivesoftware.smackx.xdata.FormField;
 
+import java.util.Date;
+
 /**
  * Created by grigoriy on 29.06.15.
  */
-public class XmppMucManager implements InvitationListener {
+public class XmppMucManager implements InvitationListener
+		, MessageListener {
 
 	private static final String TAG	= "XmppChat.MucManager";
 
@@ -63,7 +70,7 @@ public class XmppMucManager implements InvitationListener {
 			try {
 				mCurrentMuc.createOrJoin(nickname);
 				setConfig(mCurrentMuc);
-				DiscussionHistory histroy=new DiscussionHistory();
+				DiscussionHistory histroy = new DiscussionHistory();
 				histroy.setMaxStanzas(10);
 
 				mCurrentMuc.createOrJoin(nickname, null, histroy, SmackConfiguration.getDefaultPacketReplyTimeout());
@@ -80,13 +87,7 @@ public class XmppMucManager implements InvitationListener {
 				return;
 			}
 		}
-		
-		mCurrentMuc.addMessageListener(new MessageListener() {
-			@Override
-			public void processMessage(Message message) {
-
-			}
-		})
+		mCurrentMuc.addMessageListener(this);
 		sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_OK);
 	}
 
@@ -106,11 +107,29 @@ public class XmppMucManager implements InvitationListener {
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public void processMessage(Message message) {
+		// get user id
+		long userId = QueryHelper.getUserByJid(Utils.extractJid(message.getFrom()));
+
+		// store message to DB
+		MessageContainer messageContainer = new MessageContainer(userId,userId, new Date().getTime(),
+				true, true
+				, message.getBody()
+				, message.getSubject());
+
+		AppController.getAppContext().getContentResolver()
+				.insert(AppContentProvider.CONTENT_URI_MESSAGES
+				, messageContainer.buildContentValues());
+	}
+
 	/**
 	 * need call when leave chat
 	 */
 	public void leaveMuc(){
 		if(mCurrentMuc != null){
+			mCurrentMuc.removeMessageListener(this);
 			try {
 				mCurrentMuc.leave();
 			}catch (Exception e){

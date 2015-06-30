@@ -12,7 +12,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DbHelper extends SQLiteOpenHelper {
 
 	private static final String DB_NAME 			= "chat.db";
-	private static final int 	DB_VERSION 			= 1;
+	private static final int 	DB_VERSION 			= 2;
 
 	public static final String COLUMN_ID 			= "_id";
 
@@ -25,8 +25,9 @@ public class DbHelper extends SQLiteOpenHelper {
 	public static final String USERS_GROUP_ID		= "group_id";
 	public static final String USERS_JID 			= "jid";
 	public static final String USERS_NAME			= "name";
-	public static final String USERS_MULTIUSER_ID	= "multiuser_id";
+	public static final String USERS_MULTIUSER 		= "multiuser";
 	public static final String USERS_ONLINE_STATUS	= "online_status";
+	public static final String USERS_MUC_ROLE		= "muc_role";
 	public static final String USERS_AUTHORIZED		= "authorized";
 
 	public static final String INDEX_USERS			= USERS_JID + "_idx";
@@ -55,16 +56,17 @@ public class DbHelper extends SQLiteOpenHelper {
 			USERS_GROUP_ID		+ " integer," +
 			USERS_JID 			+ " text UNIQUE NOT NULL," +
 			USERS_NAME			+ " text," +
-			USERS_MULTIUSER_ID	+ " integer,"+
+			USERS_MULTIUSER + " integer,"+
 			USERS_ONLINE_STATUS	+ " integer,"+
+			USERS_MUC_ROLE		+ " integger,"+
 			USERS_AUTHORIZED	+ " integer"+
 			");";
 
-	//Messages
 	private static final String CREATE_USERS_INDEX = "CREATE UNIQUE INDEX "
 			+ INDEX_USERS + " ON " + TABLE_USERS + " ("
 			+ USERS_JID + " ASC);";
 
+	//Messages
 	private static final String CREATE_TABLE_MESSAGES = "" +
 			"CREATE TABLE " + TABLE_MESSAGES + "(" +
 			COLUMN_ID 				+ " integer primary key autoincrement," +
@@ -86,7 +88,7 @@ public class DbHelper extends SQLiteOpenHelper {
 		String[] CREATES = {
 				CREATE_TABLE_GROUPS,
 				CREATE_TABLE_USERS,
-				CREATE_TABLE_MESSAGES,
+				CREATE_TABLE_MESSAGES
 				CREATE_USERS_INDEX
 		};
 		for (final String table : CREATES) {

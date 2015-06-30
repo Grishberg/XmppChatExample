@@ -16,7 +16,7 @@ import java.util.Date;
  */
 public class QueryHelper {
 	// get or add user by JID
-	public static long getUserByJid(String jid){
+	public static long getUserByJid(String jid,boolean isMultiuser){
 		long idUser = -1;
 		SqlQueryBuilderHelper helper = new SqlQueryBuilderHelper();
 		helper.makeGetUserQuery(jid);
@@ -34,6 +34,7 @@ public class QueryHelper {
 
 				ContentValues values = new ContentValues();
 			values.put(DbHelper.USERS_JID, jid);
+			values.put(DbHelper.USERS_MULTIUSER, isMultiuser ? 1: 0);
 			Uri uri = contentResolver.insert(helper.getUri(),values);
 			idUser	= Long.valueOf(uri.getLastPathSegment());
 
@@ -45,7 +46,7 @@ public class QueryHelper {
 	public static String getJidById(long userId){
 		String result = null;
 		SqlQueryBuilderHelper helper = new SqlQueryBuilderHelper();
-		Cursor cursor =AppController.getAppContext().getContentResolver()
+		Cursor cursor = AppController.getAppContext().getContentResolver()
 				.query(AppContentProvider.getUsersUri(userId)
 						, new String[]{ DbHelper.USERS_JID}
 						, null

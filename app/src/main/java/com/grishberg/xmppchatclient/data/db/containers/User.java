@@ -11,27 +11,27 @@ import com.grishberg.xmppchatclient.data.db.DbHelper;
 public class User {
 	private long id;
 	private long groupId;
-	private long multiuserId;
 	private String login;
 	private String name;
 	private boolean authorized;
+	private boolean isMultiuser;
 	private int	onlineStatus;
 
 
-	private User(long id, String login, String name, long groupId, long multiuserId
-			,boolean authorized,int onlineStatus ) {
+	private User(long id, String login, String name, long groupId
+			,boolean authorized,int onlineStatus, boolean isMultiuser ) {
 		this.id = id;
 		this.login			= login;
 		this.name 			= name;
 		this.groupId		= groupId;
-		this.multiuserId	= multiuserId;
+		this.isMultiuser	= isMultiuser;
 		this.authorized		= authorized;
 		this.onlineStatus	= onlineStatus;
 	}
 
-	public User(String login, String name, long groupId, long multiuserId, boolean authorized
-		,int onlineStatus) {
-		this(-1, login, name, groupId, multiuserId, authorized, onlineStatus);
+	public User(String login, String name, long groupId, boolean authorized
+		,int onlineStatus, boolean isMultiuser) {
+		this(-1, login, name, groupId, authorized, onlineStatus, isMultiuser);
 	}
 
 
@@ -43,7 +43,7 @@ public class User {
 		cv.put(DbHelper.USERS_JID, 		login);
 		cv.put(DbHelper.USERS_NAME, 		name);
 		cv.put(DbHelper.USERS_GROUP_ID, 	groupId);
-		cv.put(DbHelper.USERS_MULTIUSER_ID, multiuserId);
+		cv.put(DbHelper.USERS_MULTIUSER, isMultiuser ? 1: 0);
 		cv.put(DbHelper.USERS_AUTHORIZED, 	authorized ? 1: 0);
 		cv.put(DbHelper.USERS_ONLINE_STATUS, onlineStatus);
 		return cv;
@@ -52,7 +52,7 @@ public class User {
 	public static User fromCursor(Cursor c){
 		int idColId 		= c.getColumnIndex(DbHelper.COLUMN_ID);
 		int loginColId 		= c.getColumnIndex(DbHelper.USERS_JID);
-		int multiuserIdColId= c.getColumnIndex(DbHelper.USERS_MULTIUSER_ID);
+		int multiuserColId= c.getColumnIndex(DbHelper.USERS_MULTIUSER);
 		int nameColId 		= c.getColumnIndex(DbHelper.USERS_NAME);
 		int groupIdColId 	= c.getColumnIndex(DbHelper.USERS_GROUP_ID);
 		int authorizedColId = c.getColumnIndex(DbHelper.USERS_AUTHORIZED);
@@ -63,10 +63,10 @@ public class User {
 				c.getString(loginColId),
 				c.getString(nameColId),
 				c.getLong(groupIdColId),
-				c.getLong(multiuserIdColId),
-				c.getLong(authorizedColId) == 1,
-				c.getInt(onlineStatusColId)
-		);
+				c.getInt(authorizedColId) == 1,
+				c.getInt(onlineStatusColId),
+				c.getInt(multiuserColId) == 1
+				);
 	}
 
 	public long getId() {
@@ -75,10 +75,6 @@ public class User {
 
 	public long getGroupId() {
 		return groupId;
-	}
-
-	public long getMultiuserId() {
-		return multiuserId;
 	}
 
 	public String getLogin() {
@@ -91,6 +87,10 @@ public class User {
 
 	public boolean isAuthorized() {
 		return authorized;
+	}
+
+	public boolean isMultiuser() {
+		return isMultiuser;
 	}
 
 	public int getOnlineStatus() {
