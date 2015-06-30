@@ -11,4 +11,11 @@ public class ChatConstants {
 	public static final int USER_STATUS_DND 		= 3;
 	public static final int USER_STATUS_AWAY 		= 4;
 	public static final int USER_STATUS_UNAVAILIBLE = 5;
+
+
+	public static final int SINGLE_CHAT_STATE 			= 1;
+	public static final int MULTICHAT_PARTICIPATE_STATE = 2;
+	public static final int MULTICHAT_CHAT_STATE 		= 3;
+
+
 }

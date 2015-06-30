@@ -6,6 +6,6 @@ package com.grishberg.xmppchatclient.ui.listeners;
 public interface IInteractChatWithActivity {
 	void onRegister(IInteractWithChatFragment fragment);
 	void onUregister(IInteractWithChatFragment fragment);
-	void onSendMessage(long chatId, String message);
+	void onSendMessage(int chatType, long chatId, String message);
 	boolean isConnected();
 }

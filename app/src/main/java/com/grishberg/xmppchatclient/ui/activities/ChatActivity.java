@@ -5,6 +5,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,8 +14,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
+import com.grishberg.xmppchatclient.data.db.AppContentProvider;
+import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.ui.fragments.ChatFragment;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
@@ -21,6 +26,7 @@ import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
 public class ChatActivity extends AppCompatActivity implements IInteractChatWithActivity{
 
 	public static final String EXTRA_CHAT_ID 	= "extraChatId";
+	public static final String EXTRA_CHAT_TYPE 	= "extraChatType";
 	public static final String EXTRA_CHAT_NAME 	= "extraChatName";
 
 	private IInteractWithChatFragment mChatFragment;
@@ -31,17 +37,13 @@ public class ChatActivity extends AppCompatActivity implements IInteractChatWith
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_chat);
+
 		Intent intent	= getIntent();
 		long chatId		= intent.getLongExtra(EXTRA_CHAT_ID, 0);
-		String chatName	= intent.getStringExtra(EXTRA_CHAT_NAME);
 
-		setTitle(chatName);
-
+		// start getting from db additional data
 		if(savedInstanceState == null) {
-			getSupportFragmentManager().beginTransaction()
-					.add(R.id.activity_chat_fragmentplaceholder, ChatFragment.newInstance(chatId)
-							, ChatFragment.class.getName())
-					.commit();
+			new AsyncTascDbQuer().execute(chatId);
 		}
 	}
 
@@ -85,10 +87,15 @@ public class ChatActivity extends AppCompatActivity implements IInteractChatWith
 		mChatFragment	= null;
 	}
 
+	/**
+	 * send message
+	 * @param chatId id of chat
+	 * @param message string message for send
+	 */
 	@Override
-	public void onSendMessage(long userId, String message) {
+	public void onSendMessage(int chatType, long chatId, String message) {
 		if(mIsBound){
-			mService.sendMessage(userId, message);
+			mService.sendMessage(chatType, chatId, message);
 		}
 	}
 
@@ -118,4 +125,44 @@ public class ChatActivity extends AppCompatActivity implements IInteractChatWith
 			}
 		}
 	};
+
+	private class AsyncTascDbQuer extends AsyncTask<Long, Void, Boolean>{
+		private int 	chatType;
+		private String 	chatJid;
+		private String 	chatNick;
+		private long	chatId;
+
+		@Override
+		protected Boolean doInBackground(Long... params) {
+			chatId	= params.length > 0 ? params[0] : -1;
+			if(chatId == -1){
+				return false;
+			}
+			Cursor cursor = AppController.getAppContext().getContentResolver()
+					.query(AppContentProvider.getUsersUri( chatId )
+							, new String[]{DbHelper.USERS_JID, DbHelper.USERS_NAME, DbHelper.USERS_MULTIUSER}
+							, null, null, null);
+			if(cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()){
+				chatType	= cursor.getInt( cursor.getColumnIndex(DbHelper.USERS_MULTIUSER) );
+				chatJid		= cursor.getString( cursor.getColumnIndex(DbHelper.USERS_JID) );
+				chatNick	= cursor.getString( cursor.getColumnIndex(DbHelper.USERS_NAME) );
+			}
+			cursor.close();
+			return true;
+		}
+
+		@Override
+		protected void onPostExecute(Boolean param) {
+			super.onPostExecute(param);
+			if(param && isCancelled()==false){
+				// add fragment
+				setTitle(chatJid);
+				getSupportFragmentManager().beginTransaction()
+						.add(R.id.activity_chat_fragmentplaceholder
+								, ChatFragment.newInstance(chatId, chatType, chatJid)
+								, ChatFragment.class.getName())
+						.commit();
+			}
+		}
+	}
 }

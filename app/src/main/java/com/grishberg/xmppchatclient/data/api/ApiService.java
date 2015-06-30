@@ -67,6 +67,7 @@ public class ApiService extends Service implements
 	public static final String ACTION_ON_MUC_JOIN_RESULT 			= "onMucJoin";
 	public static final int MUC_JOIN_STATUS_OK 						= 1;
 	public static final String EXTRA_JOIN_MUC_STATUS 				= "joinMucStatus";
+	public static final String EXTRA_MUC_CHAT_ID	 				= "mucChatId";
 	public static final int MUC_JOIN_STATUS_NOT_RESPONSE 			= 2;
 	public static final int MUC_JOIN_STATUS_OTHER_ERROR				= 10;
 
@@ -182,9 +183,19 @@ public class ApiService extends Service implements
 	}
 
 
-	public void sendMessage(long userId, String messageText){
-		if(mMessageManager != null){
-			mMessageManager.sendMessage(userId, messageText);
+	public void sendMessage(int chatType, long chatId, String messageText){
+		switch (chatType) {
+			case ChatConstants.SINGLE_CHAT_STATE:
+			if (mMessageManager != null) {
+				mMessageManager.sendMessage(chatId, messageText);
+			}
+				break;
+
+			case ChatConstants.MULTICHAT_CHAT_STATE:
+				if(mMucManager != null){
+					mMucManager.sendMessage(chatId, messageText);
+				}
+				break;
 		}
 	}
 

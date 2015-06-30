@@ -34,10 +34,11 @@ public class MainActivity extends AppCompatActivity implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		getSupportFragmentManager().beginTransaction()
-				.add(R.id.userlist_fragment_container,UserListFragment.newInstance())
-				.commit();
-
+		if(savedInstanceState == null) {
+			getSupportFragmentManager().beginTransaction()
+					.add(R.id.userlist_fragment_container, UserListFragment.newInstance())
+					.commit();
+		}
 		startService(new Intent(this, ApiService.class));
 		bindService( new Intent(this, ApiService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
 

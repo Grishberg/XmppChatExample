@@ -81,9 +81,12 @@ public class UserListFragment extends Fragment implements
 
 
 		mUsersProjection 			= null;
-		mUsersFilterSelection		= DbHelper.COLUMN_ID +" <> ?";
-		mUsersFilterSelectionArgs	= new String[] { ChatConstants.CURRENT_LOCAL_USER_ID.toString() };
+		mUsersFilterSelection		= DbHelper.COLUMN_ID +" <> ? AND "+
+				DbHelper.USERS_MULTIUSER + " = ?" ;
+		mUsersFilterSelectionArgs	= new String[] { ChatConstants.CURRENT_LOCAL_USER_ID.toString()
+				, String.valueOf( ChatConstants.SINGLE_CHAT_STATE) };
 		mUsersSortOrder				= DbHelper.USERS_ONLINE_STATUS+" ASC ," +
+				DbHelper.USERS_MULTIUSER + " ASC, "+
 				DbHelper.USERS_JID + " ASC ";
 
 		// button add

@@ -12,7 +12,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DbHelper extends SQLiteOpenHelper {
 
 	private static final String DB_NAME 			= "chat.db";
-	private static final int 	DB_VERSION 			= 2;
+	private static final int 	DB_VERSION 			= 3;
 
 	public static final String COLUMN_ID 			= "_id";
 
@@ -56,7 +56,7 @@ public class DbHelper extends SQLiteOpenHelper {
 			USERS_GROUP_ID		+ " integer," +
 			USERS_JID 			+ " text UNIQUE NOT NULL," +
 			USERS_NAME			+ " text," +
-			USERS_MULTIUSER + " integer,"+
+			USERS_MULTIUSER 	+ " integer,"+
 			USERS_ONLINE_STATUS	+ " integer,"+
 			USERS_MUC_ROLE		+ " integger,"+
 			USERS_AUTHORIZED	+ " integer"+
@@ -88,7 +88,7 @@ public class DbHelper extends SQLiteOpenHelper {
 		String[] CREATES = {
 				CREATE_TABLE_GROUPS,
 				CREATE_TABLE_USERS,
-				CREATE_TABLE_MESSAGES
+				CREATE_TABLE_MESSAGES,
 				CREATE_USERS_INDEX
 		};
 		for (final String table : CREATES) {

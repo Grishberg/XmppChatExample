@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
@@ -36,13 +37,13 @@ public class XmppRosterManager implements RosterListener {
 	private Context					mContext;
 	private AbstractXMPPConnection 	mConnection;
 	private Roster 					mRoster;
-	private Map<Long, RosterEntry> mUserList;
+	private SparseArray 			mUserList;
 
 	public XmppRosterManager(Context context, AbstractXMPPConnection connection){
 		mContext	= context;
 		mConnection	= connection;
 		// setup roster
-		mUserList			= new HashMap<>();
+		mUserList			= new SparseArray();
 		try {
 			mRoster = Roster.getInstanceFor(mConnection);
 			if (!mRoster.isLoaded())
@@ -75,13 +76,14 @@ public class XmppRosterManager implements RosterListener {
 					}
 					String jid	= Utils.extractJid(user.getUser());
 					String name	= user.getName();
-					User userContainer = new User(jid, name, groupId, false, 0, false);
+					User userContainer = new User(jid, name, groupId, false, 0
+							, ChatConstants.SINGLE_CHAT_STATE);
 
 					Uri userUri = AppController.getAppContext().getContentResolver()
 							.insert(AppContentProvider.CONTENT_URI_USERS
 									,userContainer.buildContentValues() );
 					long userId = Long.valueOf( userUri.getLastPathSegment());
-					mUserList.put(userId, user);
+					mUserList.put((int)userId, user);
 
 					Presence presence 	= mRoster.getPresence(user.getUser());
 					processPresence(userId, presence);
@@ -108,7 +110,7 @@ public class XmppRosterManager implements RosterListener {
 	private void doDeleteUserFromRoster(long userId){
 		if(mConnection.isAuthenticated()){
 			String jid = QueryHelper.getJidById(userId);
-			RosterEntry entry = mUserList.get(userId);
+			RosterEntry entry = (RosterEntry)mUserList.get((int)userId);
 			if(entry != null) {
 				try {
 					mRoster.removeEntry(entry);
@@ -192,7 +194,7 @@ public class XmppRosterManager implements RosterListener {
 	private void doChangePresence(Presence presence){
 
 		String jid	= Utils.extractJid(presence.getFrom());
-		long userId	= QueryHelper.getUserByJid( jid );
+		long userId	= QueryHelper.getUserByJid( jid,"", ChatConstants.SINGLE_CHAT_STATE );
 		processPresence(userId, presence);
 
 	}

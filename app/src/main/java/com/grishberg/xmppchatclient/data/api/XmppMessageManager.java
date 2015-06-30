@@ -3,6 +3,7 @@ package com.grishberg.xmppchatclient.data.api;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
@@ -36,7 +37,7 @@ public class XmppMessageManager implements MessageListener
 	private Context					mContext;
 	private AbstractXMPPConnection	mConnection;
 	private ChatManager 			mChatManager;
-	private Map<Long, Chat> mPrivateChats;
+	private SparseArray 			mPrivateChats;
 
 	public XmppMessageManager(Context context,AbstractXMPPConnection connection){
 		mContext	= context;
@@ -47,7 +48,7 @@ public class XmppMessageManager implements MessageListener
 		if(mChatManager != null){
 			mChatManager.addChatListener(this);
 		}
-		mPrivateChats		= new HashMap<>();
+		mPrivateChats		= new SparseArray();
 	}
 
 	/**
@@ -60,8 +61,8 @@ public class XmppMessageManager implements MessageListener
 
 		Log.d(TAG, "on chat created");
 		String jid	= Utils.extractJid(chat.getParticipant());
-		long userId	= QueryHelper.getUserByJid(jid);
-		mPrivateChats.put(userId, chat);
+		long userId	= QueryHelper.getUserByJid(jid,"", ChatConstants.SINGLE_CHAT_STATE);
+		mPrivateChats.put((int)userId, chat);
 		chat.addMessageListener(this);
 
 	}
@@ -89,7 +90,8 @@ public class XmppMessageManager implements MessageListener
 		ContentResolver contentResolver = AppController.getAppContext().getContentResolver();
 
 		// get user id
-		long userId = QueryHelper.getUserByJid(Utils.extractJid(chat.getParticipant()));
+		long userId = QueryHelper.getUserByJid(Utils.extractJid(chat.getParticipant()),""
+				, ChatConstants.SINGLE_CHAT_STATE);
 
 		// store message to DB
 		MessageContainer messageContainer = new MessageContainer(userId,userId, new Date().getTime(),
@@ -112,12 +114,13 @@ public class XmppMessageManager implements MessageListener
 	}
 
 	private void doSendMessage(long userId, String messageText){
+
 		if(mConnection.isAuthenticated()){
-			Chat currentChat = mPrivateChats.get(userId);
+			Chat currentChat = (Chat)mPrivateChats.get((int)userId);
 			if( currentChat == null){
 				String jid	= QueryHelper.getJidById( userId );
 				currentChat = mChatManager.createChat( jid );
-				mPrivateChats.put(userId, currentChat);
+				mPrivateChats.put((int)userId, currentChat);
 			}
 			try {
 				currentChat.sendMessage(messageText);

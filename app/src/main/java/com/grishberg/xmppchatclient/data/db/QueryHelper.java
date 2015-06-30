@@ -7,6 +7,7 @@ import android.net.Uri;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
+import com.grishberg.xmppchatclient.data.db.containers.User;
 import com.grishberg.xmppchatclient.framework.ChatConstants;
 
 import java.util.Date;
@@ -15,8 +16,20 @@ import java.util.Date;
  * Created by grigoriy on 26.06.15.
  */
 public class QueryHelper {
+
+	public static long addOrUpdateMultichatRoom(String jid, String nickname, String password){
+		long userId = -1;
+
+		User user = new User(jid, nickname, 0, false, 0, ChatConstants.MULTICHAT_CHAT_STATE );
+		Uri uri = AppController.getAppContext().getContentResolver()
+				.insert(AppContentProvider.CONTENT_URI_USERS,user.buildContentValues());
+		userId = Long.valueOf(uri.getLastPathSegment());
+		return userId;
+
+	}
+
 	// get or add user by JID
-	public static long getUserByJid(String jid,boolean isMultiuser){
+	public static long getUserByJid(String jid, String nickname, int multichatState){
 		long idUser = -1;
 		SqlQueryBuilderHelper helper = new SqlQueryBuilderHelper();
 		helper.makeGetUserQuery(jid);
@@ -34,13 +47,20 @@ public class QueryHelper {
 
 				ContentValues values = new ContentValues();
 			values.put(DbHelper.USERS_JID, jid);
-			values.put(DbHelper.USERS_MULTIUSER, isMultiuser ? 1: 0);
+			values.put(DbHelper.USERS_MULTIUSER, multichatState);
 			Uri uri = contentResolver.insert(helper.getUri(),values);
 			idUser	= Long.valueOf(uri.getLastPathSegment());
 
 		}
 
 		return idUser;
+	}
+
+	public static long insertUser(String jid, String nickname,int onlineStatus, int multichatState){
+		User user = new User(jid, nickname,0, false, onlineStatus, multichatState);
+		Uri uri = AppController.getAppContext().getContentResolver()
+				.insert(AppContentProvider.CONTENT_URI_USERS,user.buildContentValues());
+		return Long.valueOf(uri.getLastPathSegment());
 	}
 
 	public static String getJidById(long userId){
@@ -87,6 +107,12 @@ public class QueryHelper {
 				.update(AppContentProvider.getUsersUri(userId), values, null, null);
 	}
 
+	public static void clearHistoryForChat(Long chatId){
+		AppController.getAppContext().getContentResolver()
+				.delete(AppContentProvider.CONTENT_URI_MESSAGES
+						, DbHelper.MESSAGES_CHAT_ID+" = ? "
+						, new String[] {chatId.toString()} );
+	}
 
 	public static void storeMessage(long userId, long chatId, Date date, String body, String subject){
 		MessageContainer messageContainer = new MessageContainer(userId,chatId
@@ -112,4 +138,6 @@ public class QueryHelper {
 		AppController.getAppContext().getContentResolver()
 				.update(AppContentProvider.getMessagesUri(messageId),values, null, null);
 	}
+
+
 }

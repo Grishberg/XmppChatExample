@@ -3,11 +3,14 @@ package com.grishberg.xmppchatclient.data.api;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.QueryHelper;
 import com.grishberg.xmppchatclient.data.db.containers.MessageContainer;
+import com.grishberg.xmppchatclient.data.db.containers.User;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 import com.grishberg.xmppchatclient.framework.Utils;
 
 import org.jivesoftware.smack.AbstractXMPPConnection;
@@ -15,15 +18,22 @@ import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smackx.muc.Affiliate;
 import org.jivesoftware.smackx.muc.DiscussionHistory;
 import org.jivesoftware.smackx.muc.InvitationListener;
+import org.jivesoftware.smackx.muc.MUCAffiliation;
+import org.jivesoftware.smackx.muc.MUCNotJoinedException;
+import org.jivesoftware.smackx.muc.MUCRole;
 import org.jivesoftware.smackx.muc.MultiUserChat;
 import org.jivesoftware.smackx.muc.MultiUserChatManager;
+import org.jivesoftware.smackx.muc.Occupant;
 import org.jivesoftware.smackx.xdata.Form;
 import org.jivesoftware.smackx.xdata.FormField;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by grigoriy on 29.06.15.
@@ -37,6 +47,8 @@ public class XmppMucManager implements InvitationListener
 	private MultiUserChat 			mCurrentMuc;
 	private MultiUserChatManager 	mMucManager;
 	private AbstractXMPPConnection	mConnection;
+	private long 					mCurrentChatId;
+	private String 					mMyMucJid;
 
 	public XmppMucManager(Context context, AbstractXMPPConnection connection){
 		mContext	= context;
@@ -65,30 +77,71 @@ public class XmppMucManager implements InvitationListener
 		if(mCurrentMuc != null){
 			leaveMuc();
 		}
-		mCurrentMuc	= mMucManager.getMultiUserChat(room +"@"+host);
+		String mucJid = room +"@"+host;
+		mMyMucJid	= mucJid+"/"+nickname;
+		mCurrentMuc	= mMucManager.getMultiUserChat(mucJid);
 		if(!mCurrentMuc.isJoined()){
 			try {
-				mCurrentMuc.createOrJoin(nickname);
-				setConfig(mCurrentMuc);
+				long timeout = 20000;
 				DiscussionHistory histroy = new DiscussionHistory();
-				histroy.setMaxStanzas(10);
+				histroy.setMaxStanzas(0);
+				boolean status = mCurrentMuc.createOrJoin(nickname, password, histroy, timeout) ;
 
-				mCurrentMuc.createOrJoin(nickname, null, histroy, SmackConfiguration.getDefaultPacketReplyTimeout());
-				mCurrentMuc.nextMessage();
-
+				setConfig(mCurrentMuc);
+				getOccupants(mCurrentMuc);
 			}
 			catch (SmackException.NoResponseException e){
-				sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_NOT_RESPONSE);
+				sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_NOT_RESPONSE, -1);
 				return;
 			}
 			catch (Exception e){
-				sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_OTHER_ERROR);
+				sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_OTHER_ERROR, -1);
 				e.printStackTrace();
 				return;
 			}
 		}
+		mCurrentChatId	= QueryHelper.addOrUpdateMultichatRoom(mucJid, nickname, password);
+
+
+
+		// clear from history old messages
+		//QueryHelper.clearHistoryForChat(mCurrentChatId);
+
 		mCurrentMuc.addMessageListener(this);
-		sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_OK);
+		sendOnMucResponseMessage(ApiService.MUC_JOIN_STATUS_OK, mCurrentChatId);
+	}
+
+	/**
+	 * get user list in current MUC
+	 * @param chat
+	 * @throws SmackException.NoResponseException
+	 * @throws XMPPException.XMPPErrorException
+	 * @throws SmackException.NotConnectedException
+	 */
+	private void getOccupants(MultiUserChat chat)throws SmackException.NoResponseException, XMPPException.XMPPErrorException, SmackException.NotConnectedException {
+		for(String occupant: chat.getOccupants()){
+			String nickname	= Utils.extractResource(occupant);
+			QueryHelper.insertUser(occupant,nickname,ChatConstants.USER_STATUS_AVAILIBLE
+					, ChatConstants.MULTICHAT_PARTICIPATE_STATE);
+			Log.d(TAG, "getOccupants: jid="+occupant);
+		}
+		/*
+
+		for(Occupant occupant: chat.getParticipants()){
+			String jid		= occupant.getJid();
+			String nick		= occupant.getNick();
+			MUCRole role	= occupant.getRole();
+			Log.d(TAG, "getParticipants: jid="+jid +" nick="+nick+" role="+role);
+		}
+		*/
+/*
+		for(Affiliate member: chat.getMembers()){
+			String jid		= member.getJid();
+			String nick		= member.getNick();
+			MUCRole role	= member.getRole();
+			Log.d(TAG, "participans: jid="+jid +" nick="+nick+" role="+role);
+		}
+*/
 	}
 
 	private void setConfig(MultiUserChat multiUserChat) {
@@ -111,18 +164,45 @@ public class XmppMucManager implements InvitationListener
 	@Override
 	public void processMessage(Message message) {
 		// get user id
-		long userId = QueryHelper.getUserByJid(Utils.extractJid(message.getFrom()));
+		String jid 		= Utils.extractJid(message.getFrom());
+		String nickname	= Utils.extractResource(message.getFrom());
 
-		// store message to DB
-		MessageContainer messageContainer = new MessageContainer(userId,userId, new Date().getTime(),
-				true, true
-				, message.getBody()
-				, message.getSubject());
+		long userId = QueryHelper.getUserByJid(message.getFrom(), nickname
+				, ChatConstants.MULTICHAT_PARTICIPATE_STATE);
 
-		AppController.getAppContext().getContentResolver()
-				.insert(AppContentProvider.CONTENT_URI_MESSAGES
-				, messageContainer.buildContentValues());
+		if(!message.getFrom().equals(mMyMucJid)) {
+			QueryHelper.storeMessage(userId, mCurrentChatId
+					, new Date(), message.getBody(), message.getSubject());
+		}
+
 	}
+
+	public void sendMessage(final long chatId, final String messageText){
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				doSendMessage(chatId, messageText);
+			}
+		}).start();
+	}
+
+	private void doSendMessage(long chatId, String messageText){
+
+		if(mConnection.isAuthenticated()){
+			//TODO: check chatId
+			if( mCurrentMuc != null) {
+				try {
+					mCurrentMuc.sendMessage(messageText);
+					QueryHelper.storeMessage(ChatConstants.CURRENT_LOCAL_USER_ID, chatId, new Date()
+							, messageText, null);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+
 
 	/**
 	 * need call when leave chat
@@ -132,6 +212,7 @@ public class XmppMucManager implements InvitationListener
 			mCurrentMuc.removeMessageListener(this);
 			try {
 				mCurrentMuc.leave();
+				//TODO: delete history and USERS
 			}catch (Exception e){
 
 			} finally {
@@ -152,10 +233,11 @@ public class XmppMucManager implements InvitationListener
 
 	}
 
-	private void sendOnMucResponseMessage(int msg){
+	private void sendOnMucResponseMessage(int msg, long chatId){
 		Intent intent = new Intent(ApiService.ACTION_ON_NEW_MUC_RESULT);
 		// You can also include some extra data.
 		intent.putExtra(ApiService.EXTRA_JOIN_MUC_STATUS, msg);
+		intent.putExtra(ApiService.EXTRA_MUC_CHAT_ID, chatId);
 		LocalBroadcastManager.getInstance(mContext).sendBroadcast(intent);
 	}
 }

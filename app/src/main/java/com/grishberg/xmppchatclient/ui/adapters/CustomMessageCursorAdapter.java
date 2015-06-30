@@ -24,10 +24,11 @@ import java.text.SimpleDateFormat;
  */
 public class CustomMessageCursorAdapter extends CursorAdapter {
 
-	private LayoutInflater mInflater;
-
-	public CustomMessageCursorAdapter(Context context, Cursor c) {
+	private LayoutInflater 	mInflater;
+	private int 			mChatType;
+	public CustomMessageCursorAdapter(Context context, Cursor c, int chatType) {
 		super(context, c);
+		mChatType		= chatType;
 		mAutoRequery	= true;
 		mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 	}
@@ -36,7 +37,9 @@ public class CustomMessageCursorAdapter extends CursorAdapter {
 	public void bindView(View view, Context context, Cursor cursor) {
 		ViewHolder holder 	= (ViewHolder) view.getTag();
 		int jidCol 			= cursor.getColumnIndexOrThrow(DbHelper.USERS_JID);
+		int nicknameColId	= cursor.getColumnIndexOrThrow(DbHelper.USERS_NAME);
 		String jid 			= cursor.getString(jidCol);
+		String nickname		= cursor.getString(nicknameColId);
 		MessageContainer messageContainer	= MessageContainer.fromCursor(cursor);
 		DateFormat df = new SimpleDateFormat("[dd.MM.yyyy HH:mm:ss]");
 		String createdAtDate = df.format(messageContainer.getCreated());
@@ -55,7 +58,11 @@ public class CustomMessageCursorAdapter extends CursorAdapter {
 			holder.rightTab.setVisibility(View.GONE);
 			holder.leftTab.setVisibility(View.VISIBLE);
 		}
-		holder.from.setText(jid);
+		if(mChatType == ChatConstants.MULTICHAT_CHAT_STATE){
+			holder.from.setText(nickname);
+		} else {
+			holder.from.setText(jid);
+		}
 		holder.messageText.setText(messageContainer.getBody());
 		holder.messageDate.setText(createdAtDate);
 	}

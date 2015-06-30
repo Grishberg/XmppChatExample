@@ -14,24 +14,24 @@ public class User {
 	private String login;
 	private String name;
 	private boolean authorized;
-	private boolean isMultiuser;
+	private int multiuserId;
 	private int	onlineStatus;
 
 
 	private User(long id, String login, String name, long groupId
-			,boolean authorized,int onlineStatus, boolean isMultiuser ) {
+			,boolean authorized,int onlineStatus, int multiuserId ) {
 		this.id = id;
 		this.login			= login;
 		this.name 			= name;
 		this.groupId		= groupId;
-		this.isMultiuser	= isMultiuser;
+		this.multiuserId	= multiuserId;
 		this.authorized		= authorized;
 		this.onlineStatus	= onlineStatus;
 	}
 
 	public User(String login, String name, long groupId, boolean authorized
-		,int onlineStatus, boolean isMultiuser) {
-		this(-1, login, name, groupId, authorized, onlineStatus, isMultiuser);
+		,int onlineStatus, int multiuserId) {
+		this(-1, login, name, groupId, authorized, onlineStatus, multiuserId);
 	}
 
 
@@ -43,7 +43,7 @@ public class User {
 		cv.put(DbHelper.USERS_JID, 		login);
 		cv.put(DbHelper.USERS_NAME, 		name);
 		cv.put(DbHelper.USERS_GROUP_ID, 	groupId);
-		cv.put(DbHelper.USERS_MULTIUSER, isMultiuser ? 1: 0);
+		cv.put(DbHelper.USERS_MULTIUSER, multiuserId );
 		cv.put(DbHelper.USERS_AUTHORIZED, 	authorized ? 1: 0);
 		cv.put(DbHelper.USERS_ONLINE_STATUS, onlineStatus);
 		return cv;
@@ -52,7 +52,7 @@ public class User {
 	public static User fromCursor(Cursor c){
 		int idColId 		= c.getColumnIndex(DbHelper.COLUMN_ID);
 		int loginColId 		= c.getColumnIndex(DbHelper.USERS_JID);
-		int multiuserColId= c.getColumnIndex(DbHelper.USERS_MULTIUSER);
+		int multiuserColId	= c.getColumnIndex(DbHelper.USERS_MULTIUSER);
 		int nameColId 		= c.getColumnIndex(DbHelper.USERS_NAME);
 		int groupIdColId 	= c.getColumnIndex(DbHelper.USERS_GROUP_ID);
 		int authorizedColId = c.getColumnIndex(DbHelper.USERS_AUTHORIZED);
@@ -65,7 +65,7 @@ public class User {
 				c.getLong(groupIdColId),
 				c.getInt(authorizedColId) == 1,
 				c.getInt(onlineStatusColId),
-				c.getInt(multiuserColId) == 1
+				c.getInt(multiuserColId)
 				);
 	}
 
@@ -89,8 +89,8 @@ public class User {
 		return authorized;
 	}
 
-	public boolean isMultiuser() {
-		return isMultiuser;
+	public int getMultiuserId() {
+		return multiuserId;
 	}
 
 	public int getOnlineStatus() {

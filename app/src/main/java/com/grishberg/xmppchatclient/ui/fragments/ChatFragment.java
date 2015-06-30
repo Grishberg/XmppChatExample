@@ -19,7 +19,6 @@ import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.db.AppContentProvider;
 import com.grishberg.xmppchatclient.data.db.DbHelper;
 import com.grishberg.xmppchatclient.data.db.SqlQueryBuilderHelper;
-import com.grishberg.xmppchatclient.framework.ChatConstants;
 import com.grishberg.xmppchatclient.ui.adapters.CustomMessageCursorAdapter;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractChatWithActivity;
 import com.grishberg.xmppchatclient.ui.listeners.IInteractWithChatFragment;
@@ -32,9 +31,14 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 	private static final int MESSAGES_LOADER = 0;
 
-	private static final String ARG_USER_ID = "userId";
+	private static final String ARG_CHAT_ID		= "chatId";
+	private static final String ARG_CHAT_TYPE	= "chatType";
+	private static final String ARG_CHAT_JID	= "chatJid";
 
-	private long mUserId;
+	private long 				mChatId;
+	private int 				mChatType;
+	private String 				mChatName;
+
 	private ListView 			mListView;
 	private EditText 			mChatText;
 	private Button				mSendButton;
@@ -46,10 +50,12 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 
 	private IInteractChatWithActivity mListener;
 
-	public static ChatFragment newInstance(long userId) {
-		ChatFragment fragment = new ChatFragment();
-		Bundle args = new Bundle();
-		args.putLong(ARG_USER_ID, userId);
+	public static ChatFragment newInstance(long chatId, int chatType, String chatJid) {
+		ChatFragment fragment 	= new ChatFragment();
+		Bundle args 			= new Bundle();
+		args.putLong(ARG_CHAT_ID, chatId);
+		args.putInt(ARG_CHAT_TYPE, chatType);
+		args.putString(ARG_CHAT_JID, chatJid);
 		fragment.setArguments(args);
 		return fragment;
 	}
@@ -62,10 +68,13 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (getArguments() != null) {
-			mUserId = getArguments().getLong(ARG_USER_ID);
-			if(mUserId > 0){
+			mChatId		= getArguments().getLong(ARG_CHAT_ID);
+			mChatType	= getArguments().getInt(ARG_CHAT_TYPE);
+			mChatName	= getArguments().getString(ARG_CHAT_JID);
+
+			if(mChatId > 0){
 				SqlQueryBuilderHelper helper	= new SqlQueryBuilderHelper();
-				helper.makeMessageHistoryQuery(mUserId);
+				helper.makeMessageHistoryQuery(mChatId);
 				mMessagesFilterSelection 		= helper.getSelection();
 				mMessagesFilterSelectionArgs	= helper.getSelectionArgs();
 				mMessagesSortOrder				= helper.getSortOrder();
@@ -91,7 +100,7 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 	}
 
 	private void fillData() {
-		mListViewCursorAdapter = new CustomMessageCursorAdapter(getActivity(), null);
+		mListViewCursorAdapter = new CustomMessageCursorAdapter(getActivity(), null, mChatType);
 		mListView.setAdapter(mListViewCursorAdapter);
 		getLoaderManager().initLoader(MESSAGES_LOADER, null, this);
 
@@ -103,7 +112,7 @@ public class ChatFragment extends Fragment implements IInteractWithChatFragment
 				mListener != null &&
 				mListener.isConnected()){
 
-			mListener.onSendMessage(mUserId, mChatText.getText().toString());
+			mListener.onSendMessage(mChatType, mChatId, mChatText.getText().toString());
 			mChatText.setText("");
 			// from service update when sended
 		}

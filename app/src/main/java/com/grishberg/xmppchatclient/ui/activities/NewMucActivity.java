@@ -22,6 +22,7 @@ import android.widget.Toast;
 import com.grishberg.xmppchatclient.AppController;
 import com.grishberg.xmppchatclient.R;
 import com.grishberg.xmppchatclient.data.api.ApiService;
+import com.grishberg.xmppchatclient.framework.ChatConstants;
 
 public class NewMucActivity extends AppCompatActivity
 		implements View.OnClickListener {
@@ -122,14 +123,12 @@ public class NewMucActivity extends AppCompatActivity
 			if(!intent.getAction().equals(ApiService.ACTION_ON_NEW_MUC_RESULT)){
 				return;
 			}
-			final int joinStatus = intent.getIntExtra(ApiService.EXTRA_JOIN_MUC_STATUS, -1);
+			final int joinStatus	= intent.getIntExtra(ApiService.EXTRA_JOIN_MUC_STATUS, -1);
+			final long chatId		= intent.getLongExtra(ApiService.EXTRA_MUC_CHAT_ID, -1);
 			switch (joinStatus){
 				case ApiService.MUC_JOIN_STATUS_OK:
-					AppController.setMucSettings(mHostEdit.getText().toString()
-							, mRoomEdit.getText().toString()
-							, mNicknameEdit.getText().toString()
-							, mPasswordEdit.getText().toString() );
-					finish();
+					onFinish(chatId);
+
 					break;
 				default:
 					showMessage("Some error");
@@ -139,6 +138,28 @@ public class NewMucActivity extends AppCompatActivity
 
 		}
 	};
+
+	/**
+	 * start activity with Chat screen
+	 * @param chatId id of multichat in table users
+	 */
+	private void onFinish(long chatId){
+
+		AppController.setMucSettings(mHostEdit.getText().toString()
+				, mRoomEdit.getText().toString()
+				, mNicknameEdit.getText().toString()
+				, mPasswordEdit.getText().toString() );
+		Intent startActivityIntent	= new Intent(this, ChatActivity.class);
+		startActivityIntent.putExtra(ChatActivity.EXTRA_CHAT_ID, chatId);
+		startActivityIntent.putExtra(ChatActivity.EXTRA_CHAT_TYPE, ChatConstants.MULTICHAT_CHAT_STATE);
+		startActivityIntent.putExtra(ChatActivity.EXTRA_CHAT_NAME, mRoomEdit.getText().toString() +
+		"@" + mHostEdit.getText().toString());
+
+		startActivity(startActivityIntent);
+
+		finish();
+	}
+
 	private void disableFields(){
 		mProgress.setVisibility(View.VISIBLE);
 		mHostEdit.setEnabled(false);

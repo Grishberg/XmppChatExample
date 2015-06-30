@@ -11,4 +11,12 @@ public class Utils {
 		}
 		return recepient;
 	}
+
+	public static String extractResource(String recepient){
+		int pos = recepient.indexOf("/");
+		if(pos >= 0){
+			return recepient.substring(pos+1);
+		}
+		return "";
+	}
 }
